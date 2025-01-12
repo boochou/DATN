@@ -12,32 +12,52 @@ fi
 # Source color configurations and utilities
 source ./config/color_bash.sh
 
+# Logging function for verbose mode
+log() {
+  if $VERBOSE; then
+    echo -e "$1"
+  fi
+}
+
+# Error handler
+error_exit() {
+  echo -e "${RED}$1${RESET}"
+  exit 1
+}
+
+# Install Go
 install_go() {
-  echo -e "${GREEN}Go is not installed. Installing Go...${RESET}"
+  echo -e "${GREEN}Installing Go version 1.23.3...${RESET}"
   sudo apt-get update
   wget -c https://golang.org/dl/go1.23.3.linux-amd64.tar.gz || error_exit "Failed to download Go."
   sudo tar -C /usr/local -xzf go1.23.3.linux-amd64.tar.gz || error_exit "Failed to extract Go."
-  [[ ":$PATH:" != *":/usr/local/go/bin:"* ]] && export PATH=$PATH:/usr/local/go/bin
+  export PATH=$PATH:/usr/local/go/bin
 }
 
+# Update Go
 update_go() {
-  echo -e "${GREEN}Updating Go to the latest version...${RESET}"
+  echo -e "${GREEN}Updating Go to version 1.23.3...${RESET}"
   sudo apt-get update
   wget -c https://golang.org/dl/go1.23.3.linux-amd64.tar.gz || error_exit "Failed to download Go."
+  sudo apt remove -y golang-go
+  sudo apt remove --auto-remove -y golang-go
   sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.3.linux-amd64.tar.gz || error_exit "Failed to update Go."
-  [[ ":$PATH:" != *":/usr/local/go/bin:"* ]] && export PATH=$PATH:/usr/local/go/bin
+  export PATH=$PATH:/usr/local/go/bin
 }
 
+# Manage Go installation
 manage_go() {
   if ! command -v go &> /dev/null; then
     install_go
   else
-    echo -e "${GREEN}Go is already installed.${RESET}"
-    current_version=$(go version | awk '{print $3}')
-    echo -e "${GREEN}Current Go version: $current_version${RESET}"
-    read -p "Do you want to install the version 1.23.3 of Go? (y/N): " update_choice
-    update_choice=${update_choice,,} # Convert to lowercase
-    if [[ "$update_choice" == "y" ]]; then
+    current_version=$(go version | awk '{print $3}' | sed 's/^go//') # Extract version (e.g., 1.20.5)
+    minor_version=$(echo "$current_version" | cut -d'.' -f2)        # Extract minor version (e.g., 20)
+    echo -e "${BLUE}Current Go version: $current_version${RESET}"
+
+    if (( minor_version > 21 )); then
+      echo -e "${BLUE}Go version is greater than 1.21. No update required.${RESET}"
+    else
+      echo -e "${YELLOW}Go version is less than or equal to 1.21. Updating Go...${RESET}"
       update_go
     fi
   fi
@@ -52,7 +72,7 @@ install_go_tool() {
     go install -v "$tool_link"@latest || error_exit "Failed to install $tool_name."
     sudo cp ~/go/bin/"$tool_name" /usr/bin/ || error_exit "Failed to move $tool_name to /bin."
   else
-    echo -e "${GREEN}$tool_name is already installed.${RESET}"
+    echo -e "${BLUE}$tool_name is already installed.${RESET}"
   fi
 }
 
@@ -62,7 +82,7 @@ install_nmap() {
     echo -e "${GREEN}Installing Nmap...${RESET}"
     sudo apt-get update && sudo apt-get install -y nmap || error_exit "Failed to install Nmap."
   else
-    echo -e "${GREEN}Nmap is already installed.${RESET}"
+    echo -e "${BLUE}Nmap is already installed.${RESET}"
   fi
 }
 
