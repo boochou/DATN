@@ -1,0 +1,140 @@
+import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from subbrute import subbrute
+import os
+output_dir = "output"
+class Utilities:
+    @staticmethod
+    def run_binary(binary_name, arguments):
+        try:
+            result = subprocess.run([binary_name] + arguments, check=True, text=True, capture_output=True)
+            output = result.stdout.strip().splitlines()
+            print(f"{binary_name} found {len(output)} subdomains.")
+            return binary_name, output
+        except subprocess.CalledProcessError as e:
+            print(f"Error running {binary_name}: {e.stderr}")
+            return binary_name, []
+        except FileNotFoundError:
+            print(f"Error: The binary '{binary_name}' was not found. Make sure it is installed and in your PATH.")
+            return binary_name, []
+
+class Reconn:
+    def __init__(self):
+        self.binaries = {
+            "subfinder": lambda domain: ["-d", domain],
+            "assetfinder": lambda domain: [domain]
+        }
+
+    def passive_recon(self, domain):
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for binary_name, arg_func in self.binaries.items():
+                args = arg_func(domain)
+                futures.append(executor.submit(Utilities.run_binary, binary_name, args))
+
+            results = {future.result()[0]: future.result()[1] for future in as_completed(futures)}
+
+        all_subdomains = set(sub for sublist in results.values() for sub in sublist)
+        print(f"Passive recon found {len(all_subdomains)} unique subdomains.")
+        return all_subdomains
+
+    def active_recon(self, domain):
+        try:
+            print(f"Starting active reconnaissance for domain: {domain}")
+            for d in subbrute.run(domain):
+                print(d)
+            return []
+        except subprocess.CalledProcessError as e:
+            print(f"Error during active reconnaissance: {e.stderr}")
+            return []
+        except FileNotFoundError:
+            print("Error: 'sublist3r' tool not found. Ensure it is properly installed and accessible.")
+            return []
+
+    def ip_port_collect(self, input_file):
+        try:
+            print(f"Running nmap on file: {input_file}")
+            result = subprocess.run(["nmap", "-iL", input_file], check=True, text=True, capture_output=True)
+            nmap_output = result.stdout.strip()
+            print("Nmap scan completed. Processing results...")
+
+            domains = {}
+            current_domain = None
+
+            for line in nmap_output.splitlines():
+                if "Nmap scan report for" in line:
+                    parts = line.split(" ")
+                    current_domain = parts[-1].strip("()")
+                    ip = parts[-2] if len(parts) > 2 else "Unknown"
+                    domains[current_domain] = {"ip": ip, "ports": []}
+                elif "/tcp" in line and current_domain:
+                    port_info = line.split()
+                    port = port_info[0]
+                    domains[current_domain]["ports"].append(port)
+                elif "Failed to resolve" in line:
+                    continue
+
+            # Format and save the results
+            output_lines = [f"{info['ip']}, {domain}, {'- '.join(info['ports'])}" for domain, info in domains.items()]
+            output_file = os.path.join(output_dir,f"nmap_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+            with open(output_file, "w") as file:
+                file.write("\n".join(output_lines))
+
+            print(f"IP/Port collection completed. Results saved to '{output_file}'.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error running nmap: {e.stderr}")
+        except FileNotFoundError:
+            print("Error: 'nmap' binary not found. Ensure it is installed and accessible.")
+
+if __name__ == "__main__":
+    os.makedirs(output_dir, exist_ok=True)
+    print("Choose an operation:")
+    print("1. Recon")
+    print("2. IP/Port Collection")
+    choice = input("Enter your choice (1/2): ").strip()
+
+    if choice == "1":
+        domain = input("Enter a single domain for reconnaissance: ").strip()
+        if not domain:
+            print("No domain provided. Exiting.")
+        else:
+            reconn_tool = Reconn()
+
+            # Run both passive and active reconnaissance concurrently
+            with ThreadPoolExecutor() as executor:
+                passive_future = executor.submit(reconn_tool.passive_recon, domain)
+                recon_type = input("Do you want to perform active reconnaissance? (y/n): ").strip().lower()
+                active_future = executor.submit(reconn_tool.active_recon, domain) if recon_type == "y" else None
+
+                # Wait for tasks to complete
+                passive_results = passive_future.result()
+                active_results = active_future.result() if active_future else []
+
+            # Combine results
+            all_results = sorted(set(passive_results).union(active_results))
+
+            # Generate output file
+            output_file = os.path.join(output_dir, f"{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+            with open(output_file, "w") as file:
+                file.write("\n".join(all_results))
+
+            print(f"Reconnaissance completed. Found {len(all_results)} unique subdomains. Results saved to '{output_file}'.")
+
+            collect_ip_port = input("Do you want to collect IP/Port information using nmap? (y/n): ").strip().lower()
+            if collect_ip_port == "y":
+                if os.path.exists(output_file):
+                    reconn_tool.ip_port_collect(output_file)
+                else:
+                    print(f"Error: File '{output_file}' does not exist.")
+
+    elif choice == "2":
+        input_file = input("Enter the path to the input file for IP/Port collection: ").strip()
+        if not os.path.exists(input_file):
+            print(f"Error: File '{input_file}' does not exist.")
+        else:
+            reconn_tool = Reconn()
+            reconn_tool.ip_port_collect(input_file)
+
+    else:
+        print("Invalid choice. Exiting.")
