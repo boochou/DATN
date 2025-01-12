@@ -50,8 +50,8 @@ manage_go() {
   if ! command -v go &> /dev/null; then
     install_go
   else
-    current_version=$(go version | awk '{print $3}' | sed 's/^go//') # Extract version (e.g., 1.20.5)
-    minor_version=$(echo "$current_version" | cut -d'.' -f2)        # Extract minor version (e.g., 20)
+    current_version=$(go version | awk '{print $3}' | sed 's/^go//') 
+    minor_version=$(echo "$current_version" | cut -d'.' -f2)       
     echo -e "${BLUE}Current Go version: $current_version${RESET}"
 
     if (( minor_version > 21 )); then
