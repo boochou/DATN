@@ -1,7 +1,7 @@
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from subbrute import subbrute
+
 import os
 output_dir = "output"
 class Utilities:
@@ -42,8 +42,7 @@ class Reconn:
     def active_recon(self, domain):
         try:
             print(f"Starting active reconnaissance for domain: {domain}")
-            for d in subbrute.run(domain):
-                print(d)
+            #TODO
             return []
         except subprocess.CalledProcessError as e:
             print(f"Error during active reconnaissance: {e.stderr}")
