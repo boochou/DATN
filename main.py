@@ -1,9 +1,12 @@
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-
+from knock import KNOCKPY
+import json
 import os
+
 output_dir = "output"
+knockpy_output=''
 class Utilities:
     @staticmethod
     def run_binary(binary_name, arguments):
@@ -42,13 +45,14 @@ class Reconn:
     def active_recon(self, domain):
         try:
             print(f"Starting active reconnaissance for domain: {domain}")
-            #TODO
-            return []
+            global knockpy_output
+            knockpy_output = KNOCKPY(domain, dns=None, useragent=None, timeout=None, threads=None, recon=False, bruteforce=True, wordlist="./tmp/dict.txt")
+            return  [entry["domain"] for entry in knockpy_output]
         except subprocess.CalledProcessError as e:
             print(f"Error during active reconnaissance: {e.stderr}")
             return []
         except FileNotFoundError:
-            print("Error: 'sublist3r' tool not found. Ensure it is properly installed and accessible.")
+            print("Error: 'knockpy' tool not found. Ensure it is properly installed and accessible.")
             return []
 
     def ip_port_collect(self, input_file):
@@ -118,7 +122,7 @@ if __name__ == "__main__":
             with open(output_file, "w") as file:
                 file.write("\n".join(all_results))
 
-            print(f"Reconnaissance completed. Found {len(all_results)} unique subdomains. Results saved to '{output_file}'.")
+            print(f"Reconnaissance completed. Found {len(all_results)} unique subdomains ({len(passive_results)} passive & {len(active_results)} active). Results saved to '{output_file}'.")
 
             collect_ip_port = input("Do you want to collect IP/Port information using nmap? (y/n): ").strip().lower()
             if collect_ip_port == "y":

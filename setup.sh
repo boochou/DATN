@@ -85,11 +85,32 @@ install_nmap() {
     echo -e "${BLUE}Nmap is already installed.${RESET}"
   fi
 }
-
+# Function to check and install a Python package
+install_python_package() {
+  package_name=$1
+  package_=$2
+  if ! python3 -c "import $package_name" &> /dev/null; then
+    echo -e "${GREEN}Installing Python package: $package_name...${RESET}"
+    pip install "$package_" || error_exit "Failed to install $package_name."
+  else
+    echo -e "${BLUE}Python package $package_name is already installed.${RESET}"
+  fi
+}
+# Verify all tools are available
+verify_tools() {
+  required_tools=("go" "subfinder" "assetfinder" "nmap" "knockpy")
+  for tool in "${required_tools[@]}"; do
+    if ! command -v "$tool" &> /dev/null; then
+      error_exit "${tool} is not installed or not found in PATH. Please check the installation process."
+    fi
+  done
+}
 # Main script execution
 log "Starting setup..."
 manage_go
 install_go_tool "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
 install_go_tool "assetfinder" "github.com/tomnomnom/assetfinder"
 install_nmap
+install_python_package "knock" "knock-subdomains"
+verify_tools
 echo -e "${GREEN}Setup completed successfully.${RESET}"
