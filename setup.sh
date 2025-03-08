@@ -69,7 +69,11 @@ install_go_tool() {
   tool_link=$2
   if ! command -v "$tool_name" &> /dev/null; then
     echo -e "${GREEN}Installing $tool_name...${RESET}"
-    go install -v "$tool_link"@latest || error_exit "Failed to install $tool_name."
+    if [ "$tool_name" == "katana" ]; then
+      CGO_ENABLED=1 go install -v "$tool_link"@latest || error_exit "Failed to install $tool_name."
+    else
+      go install -v "$tool_link"@latest || error_exit "Failed to install $tool_name."
+    fi
     sudo cp ~/go/bin/"$tool_name" /usr/bin/ || error_exit "Failed to move $tool_name to /bin."
   else
     echo -e "${BLUE}$tool_name is already installed.${RESET}"
@@ -98,7 +102,7 @@ install_python_package() {
 }
 # Verify all tools are available
 verify_tools() {
-  required_tools=("go" "subfinder" "assetfinder" "nmap" "knockpy")
+  required_tools=("go" "subfinder" "assetfinder" "nmap" "knockpy" "katana" "ffuf")
   for tool in "${required_tools[@]}"; do
     if ! command -v "$tool" &> /dev/null; then
       error_exit "${tool} is not installed or not found in PATH. Please check the installation process."
@@ -110,7 +114,10 @@ log "Starting setup..."
 manage_go
 install_go_tool "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfinder"
 install_go_tool "assetfinder" "github.com/tomnomnom/assetfinder"
+install_go_tool "katana" "github.com/projectdiscovery/katana/cmd/katana"
+install_go_tool "ffuf" "github.com/ffuf/ffuf/v2"
 install_nmap
 install_python_package "knock" "knock-subdomains"
+# install_python_package "httpx" "httpx"
 verify_tools
 echo -e "${GREEN}Setup completed successfully.${RESET}"
