@@ -1,6 +1,7 @@
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+import csv
 from knock import KNOCKPY
 import json
 import os
@@ -58,33 +59,42 @@ class Reconn:
     def ip_port_collect(self, input_file):
         try:
             print(f"Running nmap on file: {input_file}")
-            result = subprocess.run(["nmap", "-iL", input_file], check=True, text=True, capture_output=True)
+            result = subprocess.run(["nmap", "-iL", input_file, "-sV"], check=True, text=True, capture_output=True)
             nmap_output = result.stdout.strip()
             print("Nmap scan completed. Processing results...")
 
-            domains = {}
-            current_domain = None
+            subfolder_path = os.path.join(output_dir, "ip_port")
+            os.makedirs(subfolder_path, exist_ok=True)
+            output_file = os.path.join(subfolder_path, f"nmap_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+            
+            with open(output_file, "w", newline="") as file:
+                csv_writer = csv.writer(file)
+                csv_writer.writerow(["Domain", "IP", "Port", "State", "Service", "IPv6"])  # Header CSV
 
-            for line in nmap_output.splitlines():
-                if "Nmap scan report for" in line:
-                    parts = line.split(" ")
-                    current_domain = parts[-1].strip("()")
-                    ip = parts[-2] if len(parts) > 2 else "Unknown"
-                    domains[current_domain] = {"ip": ip, "ports": []}
-                elif "/tcp" in line and current_domain:
-                    port_info = line.split()
-                    port = port_info[0]
-                    domains[current_domain]["ports"].append(port)
-                elif "Failed to resolve" in line:
-                    continue
+                current_domain = None
+                current_ip = None
+                current_ipv6 = None
 
-            # Format and save the results
-            output_lines = [f"{info['ip']}, {domain}, {'- '.join(info['ports'])}" for domain, info in domains.items()]
-            output_file = os.path.join(output_dir,f"nmap_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
-            with open(output_file, "w") as file:
-                file.write("\n".join(output_lines))
+                for line in nmap_output.splitlines():
+                    if "Nmap scan report for" in line:
+                        parts = line.split(" ")
+                        current_domain = parts[-1].strip("()")
+                        current_ip = parts[-2] if len(parts) > 2 else "Unknown"
+                        current_ipv6 = None  # Reset IPv6
+
+                    elif "IPv6 address" in line:
+                        current_ipv6 = line.split()[-1]
+
+                    elif "/tcp" in line and current_domain:
+                        port_info = line.split()
+                        port = port_info[0].split('/')[0]  # port
+                        state = port_info[1]  # State (open, closed,...)
+                        service = port_info[2] if len(port_info) > 2 else "Unknown"
+
+                        csv_writer.writerow([current_domain, current_ip, port, state, service, current_ipv6])
 
             print(f"IP/Port collection completed. Results saved to '{output_file}'.")
+
         except subprocess.CalledProcessError as e:
             print(f"Error running nmap: {e.stderr}")
         except FileNotFoundError:
@@ -116,9 +126,11 @@ if __name__ == "__main__":
 
             # Combine results
             all_results = sorted(set(passive_results).union(active_results))
-
+            
+            subfolder_path = os.path.join(output_dir, "reconn")
+            os.makedirs(subfolder_path, exist_ok=True)
             # Generate output file
-            output_file = os.path.join(output_dir, f"{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+            output_file = os.path.join(subfolder_path, f"{domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
             with open(output_file, "w") as file:
                 file.write("\n".join(all_results))
 

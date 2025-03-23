@@ -109,6 +109,31 @@ verify_tools() {
     fi
   done
 }
+install_paramspider() {
+    # Navigate to ./.tool directory
+    mkdir -p ./.tool
+    cd ./.tool || { echo "Failed to enter ./.tool directory"; return 1; }
+
+    # Check if paramspider is already installed
+    if command -v paramspider &> /dev/null; then
+        echo "ParamSpider is already installed."
+        return 0
+    fi
+
+    # Clone the repository if it doesn't exist
+    if [ ! -d "paramspider" ]; then
+        echo "Cloning ParamSpider repository..."
+        git clone https://github.com/devanshbatham/paramspider || { echo "Failed to clone repository"; return 1; }
+    fi
+
+    # Install the package
+    cd paramspider || { echo "Failed to enter paramspider directory"; return 1; }
+    echo "Installing ParamSpider..."
+    pip install . || { echo "Installation failed"; return 1; }
+
+    echo "ParamSpider installed successfully."
+}
+
 # Main script execution
 log "Starting setup..."
 manage_go
@@ -118,6 +143,7 @@ install_go_tool "katana" "github.com/projectdiscovery/katana/cmd/katana"
 install_go_tool "ffuf" "github.com/ffuf/ffuf/v2"
 install_nmap
 install_python_package "knock" "knock-subdomains"
+install_paramspider
 # install_python_package "httpx" "httpx"
 verify_tools
 echo -e "${GREEN}Setup completed successfully.${RESET}"

@@ -1,3 +1,4 @@
 /output/*
 /subbrute/__pycache__/
 /subbrute/dnslib/__pycache__/
+/.tool/*
