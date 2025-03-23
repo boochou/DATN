@@ -102,7 +102,7 @@ install_python_package() {
 }
 # Verify all tools are available
 verify_tools() {
-  required_tools=("go" "subfinder" "assetfinder" "nmap" "knockpy" "katana" "ffuf")
+  required_tools=("go" "subfinder" "assetfinder" "nmap" "knockpy" "katana" "ffuf" "httpx" "paramspider")
   for tool in "${required_tools[@]}"; do
     if ! command -v "$tool" &> /dev/null; then
       error_exit "${tool} is not installed or not found in PATH. Please check the installation process."
@@ -141,6 +141,7 @@ install_go_tool "subfinder" "github.com/projectdiscovery/subfinder/v2/cmd/subfin
 install_go_tool "assetfinder" "github.com/tomnomnom/assetfinder"
 install_go_tool "katana" "github.com/projectdiscovery/katana/cmd/katana"
 install_go_tool "ffuf" "github.com/ffuf/ffuf/v2"
+install_go_tool "httpx" "github.com/projectdiscovery/httpx/cmd/httpx"
 install_nmap
 install_python_package "knock" "knock-subdomains"
 install_paramspider

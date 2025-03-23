@@ -5,16 +5,25 @@ import csv
 from knock import KNOCKPY
 import json
 import os
+import re
 
-output_dir = "output"
+output_dir = "results"
 knockpy_output=''
 class Utilities:
     @staticmethod
-    def run_binary(binary_name, arguments):
+    def run_binary(binary_name, arguments,domain=None):
         try:
             result = subprocess.run([binary_name] + arguments, check=True, text=True, capture_output=True)
-            output = result.stdout.strip().splitlines()
-            print(f"{binary_name} found {len(output)} subdomains.")
+            if binary_name != 'paramspider':
+                output = result.stdout.strip().splitlines() 
+            else:   
+                result_file = f"./results/{domain}.txt"
+                output=[]
+                if os.path.exists(result_file):
+                    with open(result_file, "r") as file:
+                        output = [line.strip() for line in file.readlines() if line.strip()]
+                os.remove(result_file)
+            print(f"{binary_name} found {len(output)} subdomains.")           
             return binary_name, output
         except subprocess.CalledProcessError as e:
             print(f"Error running {binary_name}: {e.stderr}")
@@ -22,6 +31,20 @@ class Utilities:
         except FileNotFoundError:
             print(f"Error: The binary '{binary_name}' was not found. Make sure it is installed and in your PATH.")
             return binary_name, []
+    @staticmethod
+    def fuzzify_url(url):
+        pattern = r'(?<==)([^&#/?]+)'  # Tìm giá trị ngay sau dấu '=' và trước ký tự đặc biệt
+        fuzzed_url = re.sub(pattern, 'FUZZ', url)
+        return fuzzed_url
+    @staticmethod
+    def extract_result(output, domain):
+        match = re.search(rf"{re.escape(domain)}\s*\[(.*?)\]", output)
+        return match.group(1) if match else None
+    
+    @staticmethod
+    def remove_ansi_codes(text):
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', text)
 
 class Reconn:
     def __init__(self):
@@ -99,13 +122,73 @@ class Reconn:
             print(f"Error running nmap: {e.stderr}")
         except FileNotFoundError:
             print("Error: 'nmap' binary not found. Ensure it is installed and accessible.")
+class Collections:
+    def  __init__(self):
+        self.urltools = {
+            "paramspider": lambda domain: ["-d", domain],
+            "katana": lambda domain: ["-u", domain]
+        }
+    def url_collection(self, input_domain):
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for binary_name, arg_func in self.urltools.items():
+                args = arg_func(input_domain)
+                futures.append(executor.submit(Utilities.run_binary, binary_name, args,input_domain))
+
+            results = {future.result()[0]: future.result()[1] for future in as_completed(futures)}
+
+        all_url = set(sub for sublist in results.values() for sub in sublist)
+        fuzzed_urls = {Utilities.fuzzify_url(url) for url in all_url}
+        print(f"URL collection found {len(fuzzed_urls)} URL.")
+        return fuzzed_urls
+    def run_httpx_command(self,command):
+        try:
+            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            return Utilities.remove_ansi_codes(result.stdout.strip())
+        except Exception as e:
+            return str(e)
+    def technology_collection(self,input_domain):
+        base_url = f"https://{input_domain}"
+        options = {
+            "-td": "Technology detection",
+            "-server": "Web server",
+            "-tls-grab": "TLS fingerprint",
+            "-asn": "ASN (Autonomous System Number)",
+            "-ip": "IP address",
+            "-cdn": "CDN",
+            "-jarm": "TLS JARM fingerprint",
+            "-cname": "CNAME domain",
+            "-extract-fqdn": "Fully qualified domain name",
+            "-sc": "HTTP status code",
+            "-ct": "Content type",
+            "-title": "Page title",
+            "-method": "HTTP method",
+            "-rt": "Response time",
+            "-websocket": "WebSocket support",
+        }
+        subfolder_path = os.path.join(output_dir, "technology_collection")
+        os.makedirs(subfolder_path, exist_ok=True)
+        output_file = os.path.join(subfolder_path, f"{input_domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+        with open(output_file, "w") as file:
+            file.write(input_domain + "\n--------------------------------\n")
+            for option, meaning in options.items():
+                command = f"/usr/bin/httpx -u {input_domain} {option}"
+                output = self.run_httpx_command(command)
+                # Extract only the relevant result
+                result = Utilities.extract_result(output, base_url)
+                if result:
+                    final_output = f"{meaning}: {result}"
+                    print(final_output)
+                    file.write(final_output + "\n")
 
 if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)
     print("Choose an operation:")
     print("1. Recon")
     print("2. IP/Port Collection")
-    choice = input("Enter your choice (1/2): ").strip()
+    print("3. Technology Collection")
+    print("4. URL Collection")
+    choice = input("Enter your choice: ").strip()
 
     if choice == "1":
         domain = input("Enter a single domain for reconnaissance: ").strip()
@@ -150,6 +233,27 @@ if __name__ == "__main__":
         else:
             reconn_tool = Reconn()
             reconn_tool.ip_port_collect(input_file)
+    elif choice =="3":
+        input_domain = input("Enter your domain for technologyn: ").strip()
+        technology_collect = Collections()
+        if not input_domain:
+            print("No domain provided. Exiting.")
+        else:
+            technology_collect.technology_collection(input_domain)
+    elif choice == "4":
+        input_domain = input("Enter your domain for URL collection: ").strip()
+        url_collect = Collections()
+        if not input_domain:
+            print("No domain provided. Exiting.")
+        else:
+            collected_urls = url_collect.url_collection(input_domain)
+            subfolder_path = os.path.join(output_dir, "url_collection")
+            os.makedirs(subfolder_path, exist_ok=True)
 
+            output_file = os.path.join(subfolder_path, f"{input_domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+            with open(output_file, "w") as file:
+                file.write("\n".join(collected_urls))
+            print(f"URL collection completed. Found {len(collected_urls)} URLs. Results saved to '{output_file}'.")
+        
     else:
         print("Invalid choice. Exiting.")
