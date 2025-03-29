@@ -1,3 +1,5 @@
 /output/*
 .tool/
 results/
+acktool.egg-info/
+__pycache__/
