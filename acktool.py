@@ -1,31 +1,69 @@
 #!/usr/bin/env python3
 import argparse
 import sys
-def collect_subdomains(input_file, mode):
-    print(f"Collecting subdomains in {mode} mode for {input_file}", file=sys.stderr)  # Debug message
+from logic import *
 
-    # Fake data for testing (replace with actual logic)
-    subdomains = ["sub1.example.com", "sub2.example.com"]
+output_dir = "results"
+def collect_subdomains(input_value, mode,w):
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"Collecting subdomains for {input_value}", file=sys.stderr)
+    if not sys.stdin.isatty():  # If input is piped
+        domains = sys.stdin.read().splitlines()
+    else:
+        try:
+            domains = Utilities.check_input(input_value)['domain']
+        except Exception as e:
+            raise InvalidInputError(f"Error processing input: {str(e)}") from e
+    reconn_tool = Reconn()
+    all_results = []
+    for d in domains:
+        with ThreadPoolExecutor() as executor:
+                passive_future = executor.submit(reconn_tool.passive_recon, d)
+                active_future = ''
+                if mode:
+                    args = (d, w) if w else (d,)
+                    active_future = executor.submit(reconn_tool.active_recon, *args)
+                passive_results = passive_future.result()
+                active_results = active_future.result() if active_future else []
+        print(f"Passive recon found {len(passive_results)} unique subdomains.\n", file=sys.stderr)       
+        print(f"Active recon found {len(active_results)} unique subdomains.\n", file=sys.stderr)       
+        results = sorted(set(passive_results).union(active_results))  
+        print(f"Active recon found {len(results)} unique subdomains.\n", file=sys.stderr)        
+        Utilities.handle_output(output_dir,"reconn",results,d)
+        all_results.extend(results)
+    return all_results
 
-    for sub in subdomains:
-        print(sub)  # Output to stdout for piping
-
-def check_active_domains(input_file=None, ip_only=False, port_only=False):
-    print(f"Checking active domains from {input_file}")
-    if ip_only:
-        print("Collecting only IPs")
-    elif port_only:
-        print("Collecting only Ports")
-    # TODO: Implement active domain checking logic
+def check_active_domains(input_file=None, ip_only=False,isCommon=True):
+    print(f"Checking active domains from {input_file}",file=sys.stderr)
     domains = []
+    #handle input
     if input_file:
-        with open(input_file, "r") as f:
-            domains = f.read().splitlines()
+        try:
+            with open(input_file, "r") as f:
+                domains = f.read().splitlines()
+        except:
+            domains = [input_file] if Utilities.is_valid_domain(input_file) else []
     elif not sys.stdin.isatty():  # If input is piped
         domains = sys.stdin.read().splitlines()
+    reconn_tool = Reconn()
+    #ip_only option
+    if ip_only:
+        all_results = []
+        for d in domains:
+            ips = reconn_tool.ip_only(d)
+            Utilities.handle_output(output_dir,"check_domain",ips,d)
+            all_results.extend(ips)
+        return all_results
+    #ip_port collection
+    all_results = []
+    for d in domains:
+        print("Checking", d)
+        ips = reconn_tool.ip_port_collect(d,isCommon)
+        Utilities.write_to_file(ips,output_dir,"check_domain",d)
+        # all_results.extend(ips)
+    return all_results
     
-    for domain in domains:
-        print(f"Active: {domain}")  # Print result for piping
+    
 
 def scan_technologies(firewall, os_only):
     print("Scanning used technologies")
@@ -45,12 +83,12 @@ def configure_tool(limit_rate, update_dict):
     # TODO: Implement configuration logic
 def print_logo():
     logo = """
-     █████╗  ██████╗██╗  ██╗    ████████╗ ██████╗  ██████╗ ██╗     
-    ██╔══██╗██╔════╝██║██║      ╚══██╔══╝██╔═══██╗██╔═══██╗██║     
-    ███████║██║     ███║           ██║   ██║   ██║██║   ██║██║     
-    ██╔══██║██║     ██║██║         ██║   ██║   ██║██║   ██║██║     
-    ██║  ██║╚██████╗██║  ██║       ██║   ╚██████╔╝╚██████╔╝███████╗
-    ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝       ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝
+     █████╗  ██████╗██╗   ██╗   ████████╗ ██████╗  ██████╗ ██╗     
+    ██╔══██╗██╔════╝██║ ██║     ╚══██╔══╝██╔═══██╗██╔═══██╗██║     
+    ███████║██║     ████║          ██║   ██║   ██║██║   ██║██║     
+    ██╔══██║██║     ██║ ██║        ██║   ██║   ██║██║   ██║██║     
+    ██║  ██║╚██████╗██║   ██║      ██║   ╚██████╔╝╚██████╔╝███████╗
+    ╚═╝  ╚═╝ ╚═════╝╚═╝   ╚═╝      ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝
     """
     print(logo)
     
@@ -61,13 +99,14 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
     subdomains_parser = subparsers.add_parser("subdomains", help="Collect subdomains")
-    subdomains_parser.add_argument("input_file", help="File or domain/URL to scan")
-    subdomains_parser.add_argument("--mode", choices=["active", "passive"], default="passive", help="Choose scanning mode")
+    subdomains_parser.add_argument("input", nargs="?",help="File or domain/URL to scan")
+    subdomains_parser.add_argument("-a", "--active", action="store_true", help="Active scanning")
+    subdomains_parser.add_argument("-w","--wordlist", type=str, help="Wordlist for scanning")
     
     domain_parser = subparsers.add_parser("check_domain", help="Check active domains")
-    domain_parser.add_argument("input_file", nargs="?", help="File or domain list (or pipe input)")
+    domain_parser.add_argument("input", nargs="?", help="File or domain list (or pipe input)")
     domain_parser.add_argument("--ip-only", action="store_true", help="Only collect IPs")
-    domain_parser.add_argument("--port-only", action="store_true", help="Only collect Ports")
+    domain_parser.add_argument("--all-port", action="store_true", help="Only collect IPs")
     
     tech_parser = subparsers.add_parser("scan_tech", help="Scan used technologies in general")
     tech_parser.add_argument("--firewall", action="store_true", help="Find firewall using Nmap")
@@ -82,9 +121,13 @@ def main():
     args = parser.parse_args()
     
     if args.command == "subdomains":
-        collect_subdomains(args.input_file, args.mode)
+        if args.wordlist and not args.active:
+            parser.error("The -w option requires -a to be specified.")
+        collect_subdomains(args.input, args.active,args.wordlist)
     elif args.command == "check_domain":
-        check_active_domains(args.input_file, args.ip_only, args.port_only)
+        if args.ip_only and args.all_port:
+            parser.error("Can not scan port when just collecting IP option")
+        check_active_domains(args.input, args.ip_only,not args.all_port)
     elif args.command == "scan_tech":
         scan_technologies(args.firewall, args.os)
     elif args.command == "collect_resources":

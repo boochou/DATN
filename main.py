@@ -166,6 +166,8 @@ class Collections:
             "-rt": "Response time",
             "-websocket": "WebSocket support",
         }
+
+
         subfolder_path = os.path.join(output_dir, "technology_collection")
         os.makedirs(subfolder_path, exist_ok=True)
         output_file = os.path.join(subfolder_path, f"{input_domain}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
