@@ -147,4 +147,5 @@ install_python_package "knock" "knock-subdomains"
 install_paramspider
 # install_python_package "httpx" "httpx"
 verify_tools
+pip install --editable . || error_exit "Failed to install package in editable mode."
 echo -e "${GREEN}Setup completed successfully.${RESET}"

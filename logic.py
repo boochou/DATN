@@ -13,6 +13,19 @@ class InvalidInputError(Exception):
     pass
 class Utilities:
     @staticmethod
+    def extract_result(output, domain):
+        match = re.search(rf"{re.escape(domain)}\s*\[(.*?)\]", output)
+        return match.group(1) if match else None
+    @staticmethod
+    def fuzzify_url(url):
+        pattern = r'(?<==)([^&#/?]+)'  # Tìm giá trị ngay sau dấu '=' và trước ký tự đặc biệt
+        fuzzed_url = re.sub(pattern, 'FUZZ', url)
+        return fuzzed_url
+    @staticmethod
+    def remove_ansi_codes(text):
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', text)
+    @staticmethod
     def handle_output(output_dir,type,results,d):  
         subfolder_path = os.path.join(output_dir, type)
         os.makedirs(subfolder_path, exist_ok=True)
@@ -42,10 +55,10 @@ class Utilities:
             raise InvalidInputError("Not a domain or a valid file path.")
 
     @staticmethod
-    def write_to_file(data: dict, output_dir,type,d):
+    def write_to_file(data: dict, output_dir,type,d,file_type='txt'):
         subfolder_path = os.path.join(output_dir, type)
         os.makedirs(subfolder_path, exist_ok=True)
-        output_file = os.path.join(subfolder_path, f"{d}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        output_file = os.path.join(subfolder_path, f"{d}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_type}")
         print(f"Writing results for {d} to {output_file}",file=sys.stderr)
         with open(output_file, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4,ensure_ascii=False)
@@ -109,7 +122,7 @@ class Utilities:
                     with open(result_file, "r") as file:
                         output = [line.strip() for line in file.readlines() if line.strip()]
                 os.remove(result_file)
-            print(f"{binary_name} found {len(output)} subdomains.", file=sys.stderr)           
+            print(f"{binary_name} found {len(output)} results.", file=sys.stderr)           
             return binary_name, output
         except subprocess.CalledProcessError as e:
             print(f"Error running {binary_name}: {e.stderr}", file=sys.stderr)
@@ -122,6 +135,13 @@ class Reconn:
         self.binaries = {
             "subfinder": lambda domain: ["-d", domain],
             "assetfinder": lambda domain: [domain]
+        }
+        self.urltools = {
+            "paramspider": lambda domain: ["-d", domain],
+            # "katana": lambda domain: ["-u", domain]
+        }
+        self.techtools = {
+            "/usr/bin/httpx": lambda domain: ["-u", domain]
         }
 
     def passive_recon(self, domain): #return an array of subdomain
@@ -171,3 +191,42 @@ class Reconn:
                 ip = parts[-1]
                 result.append(ip)
         return result
+    
+    def tech_collect_general(self,input):
+        options = {
+            "-td": "Technology detection",
+            "-server": "Web server",
+            "-tls-grab": "TLS fingerprint",
+            "-asn": "ASN (Autonomous System Number)",
+            "-ip": "IP address",
+            "-cdn": "CDN",
+            "-jarm": "TLS JARM fingerprint",
+            "-cname": "CNAME domain",
+            "-extract-fqdn": "Fully qualified domain name",
+            "-sc": "HTTP status code",
+            "-ct": "Content type",
+            "-title": "Page title",
+            "-method": "HTTP method",
+            "-rt": "Response time",
+            "-websocket": "WebSocket support",
+        }
+        result = {}
+        for option, meaning in options.items():
+            output = subprocess.run(["/usr/bin/httpx",option,"-u", input], check=True, text=True, capture_output=True)
+            raw = Utilities.remove_ansi_codes(output.stdout.strip())
+            result[meaning] = Utilities.extract_result(raw,input)
+        return result
+
+    def url_collection(self, input_domain):
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for binary_name, arg_func in self.urltools.items():
+                args = arg_func(input_domain)
+                futures.append(executor.submit(Utilities.run_binary, binary_name, args,input_domain))
+
+            results = {future.result()[0]: future.result()[1] for future in as_completed(futures)}
+
+        all_url = set(sub for sublist in results.values() for sub in sublist)
+        fuzzed_urls = {Utilities.fuzzify_url(url) for url in all_url}
+        print(f"URL collection found {len(fuzzed_urls)} URL.")
+        return fuzzed_urls

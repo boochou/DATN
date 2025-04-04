@@ -28,7 +28,7 @@ def collect_subdomains(input_value, mode,w):
         print(f"Passive recon found {len(passive_results)} unique subdomains.\n", file=sys.stderr)       
         print(f"Active recon found {len(active_results)} unique subdomains.\n", file=sys.stderr)       
         results = sorted(set(passive_results).union(active_results))  
-        print(f"Active recon found {len(results)} unique subdomains.\n", file=sys.stderr)        
+        print(f"Recon found {len(results)} unique subdomains.\n", file=sys.stderr)        
         Utilities.handle_output(output_dir,"reconn",results,d)
         all_results.extend(results)
     return all_results
@@ -59,22 +59,55 @@ def check_active_domains(input_file=None, ip_only=False,isCommon=True):
     for d in domains:
         print("Checking", d)
         ips = reconn_tool.ip_port_collect(d,isCommon)
-        Utilities.write_to_file(ips,output_dir,"check_domain",d)
-        # all_results.extend(ips)
-    return all_results
-    
-    
+        Utilities.write_to_file(ips,output_dir,"check_domain",d,'json')
+        all_results.extend(ips)
+    return all_results  
 
-def scan_technologies(firewall, os_only):
-    print("Scanning used technologies")
+def scan_technologies(input_file,firewall, os_only):
+    print(f"Checking active domains from {input_file}",file=sys.stderr)
+    domains = []
+    #handle input
+    if input_file:
+        try:
+            with open(input_file, "r") as f:
+                domains = f.read().splitlines()
+        except:
+            domains = [input_file] if Utilities.is_valid_domain(input_file) else []
+    elif not sys.stdin.isatty():  # If input is piped
+        domains = sys.stdin.read().splitlines()
+    reconn_tool = Reconn()
+    all_results = {}
+    #general purpose
+    for d in domains: 
+        result = reconn_tool.tech_collect_general(d)
+        Utilities.write_to_file(result,output_dir,"scan_tech",d,'json')
+        all_results[d] = result
+        
+    # TODO: Implement technology scanning logic
     if firewall:
         print("Finding firewall using Nmap")
     if os_only:
         print("Finding possible OS")
-    # TODO: Implement technology scanning logic
+    return all_results
+    
 
-def collect_resources():
-    print("Collecting URL and directory resources")
+def collect_resources(input_file,wordlist):
+    #handle input
+    if input_file:
+        try:
+            with open(input_file, "r") as f:
+                domains = f.read().splitlines()
+        except:
+            domains = [input_file] if Utilities.is_valid_domain(input_file) else []
+    elif not sys.stdin.isatty():  # If input is piped
+        domains = sys.stdin.read().splitlines()
+    reconn_tool = Reconn()
+    all_results = {}
+    for d in domains:
+        result = reconn_tool.url_collection(d)
+        Utilities.handle_output(output_dir,"url_collection",result,d)
+        all_results[d] = list(result)
+    return all_results
     # TODO: Implement resource collection logic
 
 def configure_tool(limit_rate, update_dict):
@@ -109,10 +142,13 @@ def main():
     domain_parser.add_argument("--all-port", action="store_true", help="Only collect IPs")
     
     tech_parser = subparsers.add_parser("scan_tech", help="Scan used technologies in general")
+    tech_parser.add_argument("input", nargs="?", help="File or domain list (or pipe input)")
     tech_parser.add_argument("--firewall", action="store_true", help="Find firewall using Nmap")
     tech_parser.add_argument("--os", action="store_true", help="Find all possible OS")
     
     resource_parser = subparsers.add_parser("collect_resources", help="Collect URL and directory resources")
+    resource_parser.add_argument("input", nargs="?", help="File or domain list (or pipe input)")
+    resource_parser.add_argument("-w","--wordlist", type=str, help="Wordlist for scanning")
     
     config_parser = subparsers.add_parser("config", help="Configuration for limit-rate and dictionary")
     config_parser.add_argument("limit_rate", help="Set limit-rate for brute-force")
@@ -129,9 +165,9 @@ def main():
             parser.error("Can not scan port when just collecting IP option")
         check_active_domains(args.input, args.ip_only,not args.all_port)
     elif args.command == "scan_tech":
-        scan_technologies(args.firewall, args.os)
+        scan_technologies(args.input, args.firewall, args.os)
     elif args.command == "collect_resources":
-        collect_resources()
+        collect_resources(args.input,args.wordlist)
     elif args.command == "config":
         configure_tool(args.limit_rate, args.update_dict)
     else:
