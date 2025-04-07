@@ -1,5 +1,10 @@
+acktool/output/*
 /output/*
 .tool/
+acktool/.tool/
 results/
+acktool/results/
 acktool.egg-info/
+acktool/acktool.egg-info/
+acktool/__pycache__/
 __pycache__/
