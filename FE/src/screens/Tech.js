@@ -9,6 +9,7 @@ export default function Tech() {
     const [scanOS, setScanOS] = useState(false);
     const [detectFirewall, setDetectFirewall] = useState(false);
     const fileInputRef = useRef(null);
+    const [scanResults, setScanResults] = useState([]);
 
     const handleFileChange = (event) => {
         const file = event.target.files[0];
@@ -20,10 +21,32 @@ export default function Tech() {
         setDomainOrFile(event.target.value);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         console.log('Domain/File:', domainOrFile);
         console.log('Scan OS:', scanOS);
         console.log('Detect Firewall:', detectFirewall);
+        try {
+            const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
+    
+            const response = await fetch(
+                `/scanTech?input=${encodeURIComponent(inputValue)}&firewall=${detectFirewall}&scanOS=${encodeURIComponent(scanOS)}`
+            );
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+    
+            const result = await response.json();
+            console.log("Scan result:", result);
+            setScanResults(result.result || result); // Adjust depending on your Flask return structure
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                        resolve(result);
+                }, 1000); 
+            });
+        } catch (error) {
+            console.error("Error fetching subdomains:", error);
+        }
     };
 
     return (
@@ -93,6 +116,16 @@ export default function Tech() {
                     >
                         Start Detection
                     </button>
+                    {scanResults.length > 0 && (
+                        <div className="mt-4">
+                            <h2 className="text-lg font-semibold mb-2">Output:</h2>
+                            <ul>
+                                {scanResults.map((result, index) => (
+                                    <li key={index}>{result}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
             </div>
 

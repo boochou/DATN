@@ -30,5 +30,13 @@ def collect_res():
     res = collect_resources(input_val,wordlist)
     return res[input_val]
 
+@app.route("/scanTech")
+def scan_tech():
+    input_val = request.args.get("input")
+    scanOS = request.args.get("scanOS")
+    firewall = request.args.get("firewall")
+    res = scan_technologies(input_val,firewall,scanOS)
+    return res
+
 if __name__ == "__main__":
     app.run(debug=True)
