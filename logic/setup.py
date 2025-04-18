@@ -1,10 +1,6 @@
 import subprocess
 from setuptools import setup, find_packages
 
-# Run setup.sh before installation
-print("Executing setup.sh...")
-subprocess.run(["bash", "setup.sh"], check=True)
-
 setup(
     name="acktool",
     version="0.1",

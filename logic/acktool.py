@@ -2,6 +2,7 @@
 import argparse
 import sys
 from logic import *
+import os
 
 output_dir = "results"
 def collect_subdomains(input_value, mode,w):
