@@ -23,5 +23,12 @@ def checkdomains():
     all_port = request.args.get("all_port")
     return check_active_domains(input,ip_only, all_port)
 
+@app.route("/collectUrls")
+def collect_res():
+    input_val = request.args.get("input")
+    wordlist = request.args.get("wordlist")
+    res = collect_resources(input_val,wordlist)
+    return res[input_val]
+
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,3 +1,4 @@
+NEED TO BE RUN UNDER OS UBUNTU
 For CLI UI
 - Run setup.sh
 - Go to directory "logic" and run "pip install -e ." 

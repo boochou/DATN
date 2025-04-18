@@ -96,7 +96,7 @@ def scan_technologies(input_file,firewall, os_only):
     return all_results
     
 
-def collect_resources(input_file,wordlist):
+def collect_resources(input_file,wordlist="None"):
     #handle input
     if input_file:
         try:
@@ -113,7 +113,6 @@ def collect_resources(input_file,wordlist):
         Utilities.handle_output(output_dir,"url_collection",result,d)
         all_results[d] = list(result)
     return all_results
-    # TODO: Implement resource collection logic
 
 def configure_tool(limit_rate, update_dict):
     print(f"Setting limit-rate: {limit_rate}")

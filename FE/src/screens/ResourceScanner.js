@@ -18,17 +18,33 @@ export default function ResourceScanner() {
         setDomain(event.target.value);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit  = async () => {
         console.log('Domain:', domain);
         console.log('Wordlist File:', wordlistFile);
-        scanResources(domain, wordlistFile)
-            .then(results => {
-                setScanResults(results);
-            })
-            .catch(error => {
-                console.error('Error scanning resources:', error);
-                setScanResults(['Error scanning resources.']);
+        try {
+            const wordlistName = wordlistFile?.name || "";
+            // const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
+            const inputValue = domain;
+    
+            const response = await fetch(
+                `/collectUrls?input=${encodeURIComponent(inputValue)}&wordlist=${encodeURIComponent(wordlistName)}`
+            );
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+    
+            const result = await response.json();
+            console.log("Scan result:", result);
+            setScanResults(result.result || result); // Adjust depending on your Flask return structure
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                        resolve(result);
+                }, 1000); 
             });
+        } catch (error) {
+            console.error("Error fetching subdomains:", error);
+        }
     };
 
     const scanResources = async (domain, wordlist) => {
