@@ -1,9 +1,18 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Header from "../assets/component/Header";
 import Footer from "../assets/component/Footer";
 import background from "../assets/img/background.jpg";
 
 export default function SubdomainScanner() {
+    // const [test, setTest] = useState([{}]);
+    // useEffect(() => {
+    //     fetch("/members")
+    //     .then(res => res.json())
+    //     .then(data => {
+    //         setTest(data);
+    //         console.log(test, data)
+    //     });
+    // }, []);
     const [domainOrFile, setDomainOrFile] = useState('');
     const [activeScan, setActiveScan] = useState(false);
     const [wordlistFile, setWordlistFile] = useState(null);
@@ -25,22 +34,39 @@ export default function SubdomainScanner() {
         setWordlistFile(file);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         console.log('Domain/File:', domainOrFile);
         console.log('Active Scan:', activeScan);
         console.log('Wordlist File:', wordlistFile);
-
-        fetchSubdomains(domainOrFile, activeScan, wordlistFile)
-            .then(results => {
-                setScanResults(results);
-            })
-            .catch(error => {
-                console.error('Error scanning subdomains:', error);
-                setScanResults(['Error scanning subdomains.']);
+    
+        try {
+            const wordlistName = wordlistFile?.name || "";
+            const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
+    
+            const response = await fetch(
+                `/subdomains?input=${encodeURIComponent(inputValue)}&isactive=${activeScan}&wordlist=${encodeURIComponent(wordlistName)}`
+            );
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+    
+            const result = await response.json();
+            console.log("Scan result:", result);
+            setScanResults(result.result || result); // Adjust depending on your Flask return structure
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                        resolve(result);
+                }, 1000); 
             });
+        } catch (error) {
+            console.error("Error fetching subdomains:", error);
+        }
     };
+    
 
     const fetchSubdomains = async (input, active, wordlist) => {
+        console.log("Input: ",input)
         return new Promise((resolve, reject) => {
             setTimeout(() => {
                 if (typeof input === 'string') {
@@ -56,7 +82,6 @@ export default function SubdomainScanner() {
     return (
         <div className="bg-center min-h-screen" style={{ backgroundImage: `url(${background})` }}>
             <Header />
-
             <div className="relative items-center justify-center min-h-screen text-gray-900 container mx-auto p-24">
                 <h1 className="text-3xl font-bold text-white mb-4">Subdomain Scanner</h1>
 

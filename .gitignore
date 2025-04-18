@@ -8,3 +8,4 @@ acktool.egg-info/
 logic/acktool.egg-info/
 logic/__pycache__/
 __pycache__/
+venv/

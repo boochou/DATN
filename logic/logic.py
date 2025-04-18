@@ -2,7 +2,6 @@ import json
 import os
 import re
 import sys
-from django.core.validators import URLValidator
 import subprocess
 from knock import KNOCKPY
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -107,7 +106,7 @@ class Utilities:
                             "service": service,
                             "version": version if version else ""
                         })
-        
+        print("NMAP RESULT: ", result)
         return result 
     @staticmethod
     def run_binary(binary_name, arguments,domain=None):
@@ -190,6 +189,7 @@ class Reconn:
             if len(parts) >= 4 and parts[2] in {"address", "IPv6"}:  # Ensure valid lines
                 ip = parts[-1]
                 result.append(ip)
+        print(f"Result in ip_only: {result}" , file=sys.stderr)
         return result
     
     def tech_collect_general(self,input):

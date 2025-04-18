@@ -35,7 +35,7 @@ def collect_subdomains(input_value, mode,w):
     return all_results
 
 def check_active_domains(input_file=None, ip_only=False,isCommon=True):
-    print(f"Checking active domains from {input_file}",file=sys.stderr)
+    print(f"Checking active domains from {input_file}, with {ip_only}",file=sys.stderr)
     domains = []
     #handle input
     if input_file:
@@ -48,20 +48,24 @@ def check_active_domains(input_file=None, ip_only=False,isCommon=True):
         domains = sys.stdin.read().splitlines()
     reconn_tool = Reconn()
     #ip_only option
-    if ip_only:
+    if ip_only and ip_only !="false":
+        print("Collect ONLY IP",file=sys.stderr)
+        print(type(ip_only))
         all_results = []
         for d in domains:
             ips = reconn_tool.ip_only(d)
             Utilities.handle_output(output_dir,"check_domain",ips,d)
             all_results.extend(ips)
+        print(f"Result in acktool: {all_results}", file=sys.stderr)
         return all_results
     #ip_port collection
-    all_results = []
+    print("Collect IP_PORT",file=sys.stderr)
+    all_results = {}
     for d in domains:
-        print("Checking", d)
         ips = reconn_tool.ip_port_collect(d,isCommon)
         Utilities.write_to_file(ips,output_dir,"check_domain",d,'json')
-        all_results.extend(ips)
+        all_results[d] = ips[d]
+    print(f"Result in acktool: {all_results}", file=sys.stderr)
     return all_results  
 
 def scan_technologies(input_file,firewall, os_only):

@@ -20,19 +20,34 @@ export default function DomainChecker() {
         setDomainOrFile(event.target.value);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () =>  {
         console.log('Domain/File:', domainOrFile);
         console.log('IP Only:', ipOnly);
         console.log('Scan Type:', scanType);
         console.log('Port Type:', portType);
-        checkDomains(domainOrFile, ipOnly, scanType, portType)
-            .then(results => {
-                setScanResults(results);
-            })
-            .catch(error => {
-                console.error('Error checking domains:', error);
-                setScanResults(['Error checking domains.']);
+        try {
+            const all_port = (portType === 'common') ? false : true;
+            const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
+            console.log("Result: ",inputValue, all_port, ipOnly)
+            const response = await fetch(
+                `/checkdomains?input=${encodeURIComponent(inputValue)}&ipOnly=${ipOnly}&all_port=${encodeURIComponent(all_port)}`
+            );
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+    
+            const result = await response.json();
+            console.log("Scan result:", result, response);
+            setScanResults(result.result || result); // Adjust depending on your Flask return structure
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                        resolve(result);
+                }, 1000); 
             });
+        } catch (error) {
+            console.error("Error fetching subdomains:", error);
+        }
     };
 
     const checkDomains = async (input, ipOnly, scanType, portType) => {
