@@ -35,8 +35,8 @@ def collect_res():
 def scan_tech():
     input_val = request.args.get("input")
     scanOS = request.args.get("scanOS")
-    firewall = request.args.get("firewall")
-    res = scan_technologies(input_val,firewall,scanOS)
+    # firewall = request.args.get("firewall")
+    res = scan_technologies(input_val,scanOS)
     return res
 
 if __name__ == "__main__":

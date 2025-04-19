@@ -68,7 +68,7 @@ def check_active_domains(input_file=None, ip_only=False,isCommon=True):
     print(f"Result in acktool: {all_results}", file=sys.stderr)
     return all_results  
 
-def scan_technologies(input_file,firewall, os_only):
+def scan_technologies(input_file, os_only):
     print(f"Checking active domains from {input_file}",file=sys.stderr)
     domains = []
     #handle input
@@ -89,8 +89,8 @@ def scan_technologies(input_file,firewall, os_only):
         all_results[d] = result
         
     # TODO: Implement technology scanning logic
-    if firewall:
-        print("Finding firewall using Nmap")
+    # if firewall:
+    #     print("Finding firewall using Nmap")
     if os_only:
         print("Finding possible OS")
     return all_results
@@ -147,7 +147,7 @@ def main():
     
     tech_parser = subparsers.add_parser("scan_tech", help="Scan used technologies in general")
     tech_parser.add_argument("input", nargs="?", help="File or domain list (or pipe input)")
-    tech_parser.add_argument("--firewall", action="store_true", help="Find firewall using Nmap")
+    # tech_parser.add_argument("--firewall", action="store_true", help="Find firewall using Nmap")
     tech_parser.add_argument("--os", action="store_true", help="Find all possible OS")
     
     resource_parser = subparsers.add_parser("collect_resources", help="Collect URL and directory resources")
@@ -169,7 +169,7 @@ def main():
             parser.error("Can not scan port when just collecting IP option")
         check_active_domains(args.input, args.ip_only,not args.all_port)
     elif args.command == "scan_tech":
-        scan_technologies(args.input, args.firewall, args.os)
+        scan_technologies(args.input, args.os)
     elif args.command == "collect_resources":
         collect_resources(args.input,args.wordlist)
     elif args.command == "config":
