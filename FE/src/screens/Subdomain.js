@@ -19,7 +19,7 @@ export default function SubdomainScanner() {
     const fileInputRef = useRef(null);
     const wordlistInputRef = useRef(null);
     const [scanResults, setScanResults] = useState([]);
-
+    const [isScanning, setIsScanning] = useState(false); 
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         setDomainOrFile(file);
@@ -35,6 +35,8 @@ export default function SubdomainScanner() {
     };
 
     const handleSubmit = async () => {
+        setIsScanning(true); 
+        setScanResults([]);
         console.log('Domain/File:', domainOrFile);
         console.log('Active Scan:', activeScan);
         console.log('Wordlist File:', wordlistFile);
@@ -51,16 +53,24 @@ export default function SubdomainScanner() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
     
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const result = await response.json();
-            console.log("Scan result:", result);
-            setScanResults(result.result || result); // Adjust depending on your Flask return structure
-            return new Promise((resolve, reject) => {
-                setTimeout(() => {
-                        resolve(result);
-                }, 1000); 
-            });
+            console.log("Scan result:", result, response);
+            if (Array.isArray(result)) {
+                setScanResults(result);
+            } else if (typeof result === 'object' && result !== null) {
+                setScanResults([JSON.stringify(result, null, 2)]);
+            } else {
+                setScanResults([String(result)]);
+            }
         } catch (error) {
-            console.error("Error fetching subdomains:", error);
+            console.error("Error fetching domains:", error);
+            setScanResults([`Error fetching domains: ${error.message}`]);
+        } finally {
+            setIsScanning(false); 
         }
     };
     
@@ -148,18 +158,28 @@ export default function SubdomainScanner() {
                     <button
                         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         onClick={handleSubmit}
+                        disabled={isScanning}
                     >
-                        Start Scan
+                        {isScanning ? 'Scanning...' : 'Start Check'}
                     </button>
 
-                    {scanResults.length > 0 && (
+                    {isScanning && (
                         <div className="mt-4">
-                            <h2 className="text-lg font-semibold mb-2">Output:</h2>
-                            <ul>
-                                {scanResults.map((result, index) => (
-                                    <li key={index}>{result}</li>
-                                ))}
-                            </ul>
+                            <h2 className="text-lg font-semibold mb-2">Scanning...</h2>
+                            <p>Please wait while the scan is in progress.</p>
+                        </div>
+                    )}
+
+                    {!isScanning && scanResults.length > 0 && (
+                        <div className="mt-4">
+                            <h2 className="text-lg font-semibold mb-2">Scan Results:</h2>
+                            <div className="overflow-auto max-h-60 bg-gray-100 rounded p-4">
+                                <pre className="font-mono text-sm">
+                                    {scanResults.map((result, index) => (
+                                        <div key={index}>{result}</div>
+                                    ))}
+                                </pre>
+                            </div>
                         </div>
                     )}
                 </div>
