@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import Header from "../assets/component/Header";
 import Footer from "../assets/component/Footer";
 import background from "../assets/img/background.jpg";
-import { Checkbox } from '@headlessui/react'; // Import Checkbox nếu cần
 
 export default function Tech() {
     const [domainOrFile, setDomainOrFile] = useState('');
@@ -10,10 +9,10 @@ export default function Tech() {
     const [detectFirewall, setDetectFirewall] = useState(false);
     const fileInputRef = useRef(null);
     const [scanResults, setScanResults] = useState([]);
+    const [isScanning, setIsScanning] = useState(false); // State to track scanning
 
     const handleFileChange = (event) => {
         const file = event.target.files[0];
-
         setDomainOrFile(file);
     };
 
@@ -22,30 +21,39 @@ export default function Tech() {
     };
 
     const handleSubmit = async () => {
+        setIsScanning(true); // Set scanning state to true
+        setScanResults([]); // Clear previous results
+
         console.log('Domain/File:', domainOrFile);
         console.log('Scan OS:', scanOS);
         console.log('Detect Firewall:', detectFirewall);
         try {
             const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
-    
+
             const response = await fetch(
-                `/scanTech?input=${encodeURIComponent(inputValue)}&firewall=${detectFirewall}&scanOS=${encodeURIComponent(scanOS)}`
+                `http://localhost:5000/scanTech?input=${encodeURIComponent(inputValue)}&firewall=${detectFirewall}&scanOS=${encodeURIComponent(scanOS)}`
             );
-    
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-    
+
             const result = await response.json();
             console.log("Scan result:", result);
-            setScanResults(result.result || result); // Adjust depending on your Flask return structure
-            return new Promise((resolve, reject) => {
-                setTimeout(() => {
-                        resolve(result);
-                }, 1000); 
-            });
+
+            if (Array.isArray(result)) {
+                setScanResults(result);
+            } else if (typeof result === 'object' && result !== null) {
+                setScanResults([JSON.stringify(result, null, 2)]);
+            } else {
+                setScanResults([String(result)]);
+            }
+
         } catch (error) {
-            console.error("Error fetching subdomains:", error);
+            console.error("Error fetching technology stack:", error);
+            setScanResults([`Error fetching technology stack: ${error.message}`]);
+        } finally {
+            setIsScanning(false); // Set scanning state to false after completion or error
         }
     };
 
@@ -53,7 +61,7 @@ export default function Tech() {
         <div className="bg-center min-h-screen" style={{ backgroundImage: `url(${background})` }}>
             <Header />
 
-            <div className="relative items-center justify-center min-h-screen text-gray-900  container mx-auto p-24">
+            <div className="relative items-center justify-center min-h-screen text-gray-900 container mx-auto p-24">
                 <h1 className="text-3xl font-bold text-white mb-4">Technology Stack Detection</h1>
 
                 <div className="bg-white p-16 rounded-lg shadow-md">
@@ -113,17 +121,29 @@ export default function Tech() {
                     <button
                         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         onClick={handleSubmit}
+                        disabled={isScanning} // Disable button while scanning
                     >
-                        Start Detection
+                        {isScanning ? 'Detecting...' : 'Start Detection'}
                     </button>
-                    {scanResults.length > 0 && (
+
+                    {isScanning && (
+                        <div className="mt-4">
+                            <h2 className="text-lg font-semibold mb-2">Detecting...</h2>
+                            <p>Please wait while technology stack is being detected.</p>
+                            {/* You can add a visual indicator here like a spinner */}
+                        </div>
+                    )}
+
+                    {!isScanning && scanResults.length > 0 && (
                         <div className="mt-4">
                             <h2 className="text-lg font-semibold mb-2">Output:</h2>
-                            <ul>
-                                {scanResults.map((result, index) => (
-                                    <li key={index}>{result}</li>
-                                ))}
-                            </ul>
+                            <div className="overflow-auto max-h-60 bg-gray-100 rounded p-4">
+                                <pre className="font-mono text-sm">
+                                    {scanResults.map((result, index) => (
+                                        <div key={index}>{result}</div>
+                                    ))}
+                                </pre>
+                            </div>
                         </div>
                     )}
                 </div>

@@ -10,7 +10,7 @@ export default function DomainChecker() {
     const [portType, setPortType] = useState('common');
     const fileInputRef = useRef(null);
     const [scanResults, setScanResults] = useState([]);
-
+    const [isScanning, setIsScanning] = useState(false); 
     const handleFileChange = (event) => {
         const file = event.target.files[0];
         setDomainOrFile(file);
@@ -20,7 +20,10 @@ export default function DomainChecker() {
         setDomainOrFile(event.target.value);
     };
 
-    const handleSubmit = async () =>  {
+    const handleSubmit = async () => {
+        setIsScanning(true); 
+        setScanResults([]);
+
         console.log('Domain/File:', domainOrFile);
         console.log('IP Only:', ipOnly);
         console.log('Scan Type:', scanType);
@@ -28,40 +31,32 @@ export default function DomainChecker() {
         try {
             const all_port = (portType === 'common') ? false : true;
             const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
-            console.log("Result: ",inputValue, all_port, ipOnly)
+            console.log("Result: ", inputValue, all_port, ipOnly);
             const response = await fetch(
-                `/checkdomains?input=${encodeURIComponent(inputValue)}&ipOnly=${ipOnly}&all_port=${encodeURIComponent(all_port)}`
+                `http://localhost:5000/checkdomains?input=${encodeURIComponent(inputValue)}&ipOnly=${ipOnly}&all_port=${encodeURIComponent(all_port)}`
             );
-    
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-    
+
             const result = await response.json();
             console.log("Scan result:", result, response);
-            setScanResults(result.result || result); // Adjust depending on your Flask return structure
-            return new Promise((resolve, reject) => {
-                setTimeout(() => {
-                        resolve(result);
-                }, 1000); 
-            });
+
+            if (Array.isArray(result)) {
+                setScanResults(result);
+            } else if (typeof result === 'object' && result !== null) {
+                setScanResults([JSON.stringify(result, null, 2)]);
+            } else {
+                setScanResults([String(result)]);
+            }
+
         } catch (error) {
-            console.error("Error fetching subdomains:", error);
+            console.error("Error fetching domains:", error);
+            setScanResults([`Error fetching domains: ${error.message}`]);
+        } finally {
+            setIsScanning(false); 
         }
-    };
-
-    const checkDomains = async (input, ipOnly, scanType, portType) => {
-
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                if (typeof input === 'string') {
-                    const fakeResults = [`${input} - ${scanType} - ${portType} - Active`];
-                    resolve(fakeResults);
-                } else {
-                    resolve(['File processing not implemented in this example']);
-                }
-            }, 1000); 
-        });
     };
 
     return (
@@ -144,18 +139,28 @@ export default function DomainChecker() {
                     <button
                         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         onClick={handleSubmit}
+                        disabled={isScanning}
                     >
-                        Start Check
+                        {isScanning ? 'Scanning...' : 'Start Check'}
                     </button>
 
-                    {scanResults.length > 0 && (
+                    {isScanning && (
+                        <div className="mt-4">
+                            <h2 className="text-lg font-semibold mb-2">Scanning...</h2>
+                            <p>Please wait while the scan is in progress.</p>
+                        </div>
+                    )}
+
+                    {!isScanning && scanResults.length > 0 && (
                         <div className="mt-4">
                             <h2 className="text-lg font-semibold mb-2">Scan Results:</h2>
-                            <ul>
-                                {scanResults.map((result, index) => (
-                                    <li key={index}>{result}</li>
-                                ))}
-                            </ul>
+                            <div className="overflow-auto max-h-60 bg-gray-100 rounded p-4">
+                                <pre className="font-mono text-sm">
+                                    {scanResults.map((result, index) => (
+                                        <div key={index}>{result}</div>
+                                    ))}
+                                </pre>
+                            </div>
                         </div>
                     )}
                 </div>

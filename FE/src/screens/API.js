@@ -17,7 +17,7 @@ export default function ApiAnalysis() {
         setAnswer('');
 
         try {
-            const response = await fetch('YOUR_API_ENDPOINT', {
+            const response = await fetch('http://localhost:5000/members', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -26,14 +26,21 @@ export default function ApiAnalysis() {
             });
 
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
-            setAnswer(data.answer); 
+            console.log("API Response:", data);
+            if (typeof data === 'object' && data !== null) {
+                setAnswer(JSON.stringify(data, null, 2));
+            } else if (typeof data === 'string') {
+                setAnswer(data);
+            } else {
+                setAnswer(String(data));
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
-            setAnswer('Error fetching data.');
+            setAnswer(`Error fetching data: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -65,13 +72,24 @@ export default function ApiAnalysis() {
                         onClick={handleSubmit}
                         disabled={loading}
                     >
-                        {loading ? 'Loading...' : 'Ask'}
+                        {loading ? 'Analyzing...' : 'Ask'}
                     </button>
+
+                    {loading && (
+                        <div className="mt-4">
+                            <h2 className="text-lg font-semibold mb-2">Analyzing...</h2>
+                            <p>Please wait while the API is being analyzed.</p>
+                        </div>
+                    )}
 
                     {answer && (
                         <div className="mt-4">
                             <h2 className="text-lg font-semibold mb-2">Answer:</h2>
-                            <p>{answer}</p>
+                            <div className="overflow-auto max-h-60 bg-gray-100 rounded p-4">
+                                <pre className="font-mono text-sm">
+                                    {answer}
+                                </pre>
+                            </div>
                         </div>
                     )}
                 </div>

@@ -44,7 +44,7 @@ export default function SubdomainScanner() {
             const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
     
             const response = await fetch(
-                `/subdomains?input=${encodeURIComponent(inputValue)}&isactive=${activeScan}&wordlist=${encodeURIComponent(wordlistName)}`
+                `http://localhost:5000/subdomains?input=${encodeURIComponent(inputValue)}&isactive=${activeScan}&wordlist=${encodeURIComponent(wordlistName)}`
             );
     
             if (!response.ok) {

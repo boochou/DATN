@@ -20,15 +20,15 @@ import {
 import { ChevronDownIcon, PhoneIcon, PlayCircleIcon } from '@heroicons/react/20/solid';
 
 const Recons = [
-  { name: 'Analytics', description: 'Subdomain discovery', href: '/SubdomainScanner', icon: MagnifyingGlassIcon },
-  { name: 'Engagement', description: ' Active domain detection', href: '/DomainChecker', icon: WifiIcon },
-  { name: 'Security', description: 'Technology stack detection', href: '/Tech', icon: WrenchScrewdriverIcon },
-  { name: 'Integrations', description: 'Resource discovery', href: '/ResourceScanner', icon: FolderOpenIcon },
-  { name: 'Automations', description: 'Configuration capabilities', href: 'Config', icon: CodeBracketSquareIcon },
+  { name: 'Subdomain discovery', description: 'Subdomain discovery', href: '/SubdomainScanner', icon: MagnifyingGlassIcon },
+  { name: 'Active domain detection', description: 'Active domain detection', href: '/DomainChecker', icon: WifiIcon },
+  { name: 'Technology stack detection', description: 'Technology stack detection', href: '/Tech', icon: WrenchScrewdriverIcon },
+  { name: 'Resource discovery', description: 'Resource discovery', href: '/ResourceScanner', icon: FolderOpenIcon },
+  // { name: 'Automations', description: 'Configuration capabilities', href: 'Config', icon: CodeBracketSquareIcon },
 ]
 const AI = [
-  { name: 'API', description: 'API Analysis', href: '/api', icon: ServerIcon },
-  { name: 'Tool', description: 'Tool Recommendation', href: '/rcm', icon: WrenchScrewdriverIcon },
+  { name: 'API Analysis', description: 'API Analysis', href: '/api', icon: ServerIcon },
+  { name: 'Tool Recommendation', description: 'Tool Recommendation', href: '/rcm', icon: WrenchScrewdriverIcon },
 ]
 
 export default function Example() {
@@ -165,11 +165,29 @@ export default function Example() {
               <div className="space-y-2 py-6">
                 <Disclosure as="div" className="-mx-3">
                   <Disclosure.Button className="group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">
-                    Recon
+                    Web Recon
                     <ChevronDownIcon aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
                   </Disclosure.Button>
                   <Disclosure.Panel className="mt-2 space-y-2">
                     {[...Recons].map((item) => (
+                      <Disclosure.Button
+                        key={item.name}
+                        as="a"
+                        href={item.href}
+                        className="block rounded-lg py-2 pr-3 pl-6 text-sm/7 font-semibold text-gray-900 hover:bg-gray-50"
+                      >
+                        {item.name}
+                      </Disclosure.Button>
+                    ))}
+                  </Disclosure.Panel>
+                </Disclosure>
+                <Disclosure as="div" className="-mx-3">
+                  <Disclosure.Button className="group flex w-full items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-900 hover:bg-gray-50">
+                    Advanced Recon
+                    <ChevronDownIcon aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
+                  </Disclosure.Button>
+                  <Disclosure.Panel className="mt-2 space-y-2">
+                    {[...AI].map((item) => (
                       <Disclosure.Button
                         key={item.name}
                         as="a"

@@ -26,14 +26,21 @@ export default function Recommendation() {
             });
 
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
-            setAnswer(data.answer);
+            console.log("API Response:", data);
+            if (typeof data === 'object' && data !== null) {
+                setAnswer(JSON.stringify(data, null, 2));
+            } else if (typeof data === 'string') {
+                setAnswer(data);
+            } else {
+                setAnswer(String(data));
+            }
         } catch (error) {
-            console.error('Error fetching data:', error);
-            setAnswer('Error fetching data.');
+            console.error('Error fetching recommendation:', error);
+            setAnswer(`Error fetching recommendation: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -65,13 +72,24 @@ export default function Recommendation() {
                         onClick={handleSubmit}
                         disabled={loading}
                     >
-                        {loading ? 'Loading...' : 'Ask'}
+                        {loading ? 'Recommending...' : 'Ask'}
                     </button>
+
+                    {loading && (
+                        <div className="mt-4">
+                            <h2 className="text-lg font-semibold mb-2">Recommending...</h2>
+                            <p>Please wait while we are generating recommendations.</p>
+                        </div>
+                    )}
 
                     {answer && (
                         <div className="mt-4">
                             <h2 className="text-lg font-semibold mb-2">Answer:</h2>
-                            <p>{answer}</p>
+                            <div className="overflow-auto max-h-60 bg-gray-100 rounded p-4">
+                                <pre className="font-mono text-sm">
+                                    {answer}
+                                </pre>
+                            </div>
                         </div>
                     )}
                 </div>

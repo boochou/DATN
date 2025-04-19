@@ -5,8 +5,9 @@ from flask import request
 app = Flask(__name__)
 CORS(app)  # ← This enables CORS for all routes
 
+
 #Member API Route
-@app.route("/members")
+@app.route("/members",methods=["GET", "POST"])
 def members():
     return {"member":["Member1","member2"]}
 

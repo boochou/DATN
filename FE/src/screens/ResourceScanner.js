@@ -8,6 +8,7 @@ export default function ResourceScanner() {
     const [wordlistFile, setWordlistFile] = useState(null);
     const fileInputRef = useRef(null);
     const [scanResults, setScanResults] = useState([]);
+    const [isScanning, setIsScanning] = useState(false); 
 
     const handleFileChange = (event) => {
         const file = event.target.files[0];
@@ -18,43 +19,41 @@ export default function ResourceScanner() {
         setDomain(event.target.value);
     };
 
-    const handleSubmit  = async () => {
+    const handleSubmit = async () => {
+        setIsScanning(true); 
+        setScanResults([]);
+
         console.log('Domain:', domain);
         console.log('Wordlist File:', wordlistFile);
         try {
             const wordlistName = wordlistFile?.name || "";
-            // const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
             const inputValue = domain;
-    
+
             const response = await fetch(
-                `/collectUrls?input=${encodeURIComponent(inputValue)}&wordlist=${encodeURIComponent(wordlistName)}`
+                `http://localhost:5000/collectUrls?input=${encodeURIComponent(inputValue)}&wordlist=${encodeURIComponent(wordlistName)}`
             );
-    
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-    
+
             const result = await response.json();
             console.log("Scan result:", result);
-            setScanResults(result.result || result); // Adjust depending on your Flask return structure
-            return new Promise((resolve, reject) => {
-                setTimeout(() => {
-                        resolve(result);
-                }, 1000); 
-            });
+
+            if (Array.isArray(result)) {
+                setScanResults(result);
+            } else if (typeof result === 'object' && result !== null) {
+                setScanResults([JSON.stringify(result, null, 2)]);
+            } else {
+                setScanResults([String(result)]);
+            }
+
         } catch (error) {
-            console.error("Error fetching subdomains:", error);
+            console.error("Error fetching resources:", error);
+            setScanResults([`Error fetching resources: ${error.message}`]);
+        } finally {
+            setIsScanning(false); 
         }
-    };
-
-    const scanResources = async (domain, wordlist) => {
-
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                const fakeResults = [`${domain}/resource1`, `${domain}/resource2`, `${domain}/resource3`];
-                resolve(fakeResults);
-            }, 1000); 
-        });
     };
 
     return (
@@ -81,19 +80,21 @@ export default function ResourceScanner() {
 
                     <div className="mb-4">
                         <label className="block text-gray-700 font-semibold mb-2">
-                        Option:
+                            Option:
                         </label>
                         <div className="flex">
                             <input
                                 type="text"
-                                id="domainOrFile"
+                                id="wordlistFileText"
                                 className="border rounded-l-md p-2 flex-grow"
-                                placeholder="Select dict file"
+                                placeholder={wordlistFile?.name || "Select dict file"}
+                                readOnly
                             />
                             <button
                                 type="button"
                                 className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-r-md"
                                 onClick={() => fileInputRef.current.click()}
+                                disabled={isScanning}
                             >
                                 Select Wordlist File
                             </button>
@@ -102,6 +103,7 @@ export default function ResourceScanner() {
                                 ref={fileInputRef}
                                 style={{ display: 'none' }}
                                 onChange={handleFileChange}
+                                disabled={isScanning}
                             />
                         </div>
                     </div>
@@ -109,18 +111,28 @@ export default function ResourceScanner() {
                     <button
                         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         onClick={handleSubmit}
+                        disabled={isScanning}
                     >
-                        Start Scan
+                        {isScanning ? 'Scanning...' : 'Start Scan'}
                     </button>
 
-                    {scanResults.length > 0 && (
+                    {isScanning && (
+                        <div className="mt-4">
+                            <h2 className="text-lg font-semibold mb-2">Scanning...</h2>
+                            <p>Please wait while resources are being scanned.</p>
+                        </div>
+                    )}
+
+                    {!isScanning && scanResults.length > 0 && (
                         <div className="mt-4">
                             <h2 className="text-lg font-semibold mb-2">Scan Results:</h2>
-                            <ul>
-                                {scanResults.map((result, index) => (
-                                    <li key={index}>{result}</li>
-                                ))}
-                            </ul>
+                            <div className="overflow-auto max-h-60 bg-gray-100 rounded p-4">
+                                <pre className="font-mono text-sm">
+                                    {scanResults.map((result, index) => (
+                                        <div key={index}>{result}</div>
+                                    ))}
+                                </pre>
+                            </div>
                         </div>
                     )}
                 </div>
