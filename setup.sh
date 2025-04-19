@@ -147,4 +147,6 @@ install_python_package "knock" "knock-subdomains"
 install_paramspider
 # install_python_package "httpx" "httpx"
 verify_tools
+sudo apt update
+sudo apt install dnsutils
 echo -e "${GREEN}Setup completed successfully.${RESET}"
