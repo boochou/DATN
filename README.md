@@ -12,32 +12,38 @@
 ```
 
 ### 2. Navigate to the logic directory
-``` cd logic
+```bash
+cd logic
 ```
 ### 3. Install the Python package in editable mode
-``` pip install -e .
+```bash
+pip install -e .
 ```
 
 ### 4. Run the tool
-``` acktool
+```bash
+acktool
 ```
 
 ## 🌐 Web UI Setup
 ### 🔧 Backend (Server)
 1. Run the setup script (Run these commands outside of any virtual environment at first):
-```./setup.sh
+```bash
+./setup.sh
 ```
 
 2. Create and activate a virtual environment:
-```python3 -m venv venv
+```bash
+python3 -m venv venv
 source venv/bin/activate
 ```
 3. Install backend dependencies:
-```pip3 install flask flask_cors knock-subdomains
+```bash
+pip3 install flask flask_cors knock-subdomains
 ```
 
 4. Navigate to the logic directory and start the server:
-```
+```bash
 cd logic
 python3 server.py
 ```
@@ -45,10 +51,12 @@ python3 server.py
 1. Open a new terminal window.
 
 2. Navigate to the FE directory:
-```cd FE
+```bash
+cd FE
 ```
 
 3. Install dependencies and start the frontend:
-```npm install
+```bash
+npm install
 npm start
 ```
