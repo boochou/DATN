@@ -13,7 +13,7 @@
 
 ### 2. Navigate to the logic directory
 ```bash
-cd logic
+cd CLI
 ```
 ### 3. Install the Python package in editable mode
 ```bash

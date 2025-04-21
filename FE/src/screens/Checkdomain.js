@@ -118,8 +118,8 @@ export default function DomainChecker() {
                             >
                                 <option value="tcp_connect">TCP Connect Scan</option>
                                 <option value="tcp_syn">TCP SYN Scan</option>
-                                <option value="udp">UDP Scan</option>
-                                <option value="null">NULL Scan</option>
+                                {/* <option value="udp">UDP Scan</option>
+                                <option value="null">NULL Scan</option> */}
                             </select>
                         </div>
                         <div className="mb-2">
