@@ -42,9 +42,12 @@ def scan_tech():
     input_val = request.args.get("input")
     scanOS = request.args.get("scanOS")
     # firewall = request.args.get("firewall")
-    result = scan_technologies(input_val,scanOS)
+    result = scan_technologies(input_val)
     if isinstance(result, (Mapping, str)):
+        print("K cần chuyển")
+        print(result)
         return result
+    print("chuyển")
     return jsonify(result)
 
 if __name__ == "__main__":

@@ -52,34 +52,32 @@ def check_active_domains(input_file=None, ip_only=False,isCommon=True):
     reconn_tool = Reconn()
     #ip_only option
     if ip_only and ip_only !="false":
-        print("Collect ONLY IP",file=sys.stderr)
-        print(type(ip_only))
         all_results = []
         for d in domains:
             ips = reconn_tool.ip_only(d)
             Utilities.handle_output(output_dir,"check_domain",ips,d)
             all_results.extend(ips)
-        print(f"Result in acktool: {all_results}", file=sys.stderr)
         return all_results
     #ip_port collection
-    print("Collect IP_PORT",file=sys.stderr)
     all_results = {}
     for d in domains:
         ips = reconn_tool.ip_port_collect(d,isCommon)
         Utilities.write_to_file(ips,output_dir,"check_domain",d,'json')
         all_results[d] = ips[d]
-    print(f"Result in acktool: {all_results}", file=sys.stderr)
     return all_results  
 
-def scan_technologies(input_file, os_only):
-    print(f"Checking active domains from {input_file}",file=sys.stderr)
+def scan_technologies(input_file):
+    print(f"Collect technology from {input_file}",file=sys.stderr)
     domains = []
     #handle input
     if input_file:
         try:
+            print(f"check input",file=sys.stderr)
             with open(input_file, "r") as f:
+                print(f"IS A FILE",file=sys.stderr)
                 domains = f.read().splitlines()
         except:
+            print(f"NOT A FILE",file=sys.stderr)
             domains = [input_file] if Utilities.is_valid_domain(input_file) else []
     elif not sys.stdin.isatty():  # If input is piped
         domains = sys.stdin.read().splitlines()
@@ -87,15 +85,17 @@ def scan_technologies(input_file, os_only):
     all_results = {}
     #general purpose
     for d in domains: 
-        result = reconn_tool.tech_collect_general(d)
-        Utilities.write_to_file(result,output_dir,"scan_tech",d,'json')
-        all_results[d] = result
+        print(f"Domain {d}", file=sys.stderr)
+        # result = reconn_tool.tech_collect_general(d)
+        # Utilities.write_to_file(result,output_dir,"scan_tech",d,'json')
+        # all_results[d] = result
         
     # TODO: Implement technology scanning logic
     # if firewall:
     #     print("Finding firewall using Nmap")
-    if os_only:
-        print("Finding possible OS")
+    # if os_only:
+    #     print("Finding possible OS")
+    print(all_results, file=sys.stderr)
     return all_results
     
 
