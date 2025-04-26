@@ -85,10 +85,9 @@ def scan_technologies(input_file):
     all_results = {}
     #general purpose
     for d in domains: 
-        print(f"Domain {d}", file=sys.stderr)
-        # result = reconn_tool.tech_collect_general(d)
-        # Utilities.write_to_file(result,output_dir,"scan_tech",d,'json')
-        # all_results[d] = result
+        result = reconn_tool.tech_collect_general(d)
+        Utilities.write_to_file(result,output_dir,"scan_tech",d,'json')
+        all_results[d] = result
         
     # TODO: Implement technology scanning logic
     # if firewall:
