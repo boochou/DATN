@@ -12,7 +12,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "acktool=acktool:main",
+            "acktool=CLI.cli_interface:main",
         ],
     },
 )

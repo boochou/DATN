@@ -25,13 +25,13 @@ export default function Tech() {
         setScanResults([]); // Clear previous results
 
         console.log('Domain/File:', domainOrFile);
-        console.log('Scan OS:', scanOS);
-        console.log('Detect Firewall:', detectFirewall);
+
+        // console.log('Detect Firewall:', detectFirewall);
         try {
             const inputValue = typeof domainOrFile === 'string' ? domainOrFile : domainOrFile.name;
 
             const response = await fetch(
-                `http://localhost:5000/scanTech?input=${encodeURIComponent(inputValue)}&firewall=${detectFirewall}&scanOS=${encodeURIComponent(scanOS)}`
+                `http://localhost:5000/scanTech?input=${encodeURIComponent(inputValue)}`
             );
 
             if (!response.ok) {
@@ -96,7 +96,7 @@ export default function Tech() {
 
                     <div className="mb-4">
                         <label className="block text-gray-700 font-semibold mb-2">Options:</label>
-                        <div className="flex items-center mb-2">
+                        {/* <div className="flex items-center mb-2">
                             <input
                                 type="checkbox"
                                 id="scanOS"
@@ -105,8 +105,8 @@ export default function Tech() {
                                 onChange={() => setScanOS(!scanOS)}
                             />
                             <label htmlFor="scanOS">Scan Possible OS (Root Privileged)</label>
-                        </div>
-                        <div className="flex items-center">
+                        </div> */}
+                        {/* <div className="flex items-center">
                             <input
                                 type="checkbox"
                                 id="detectFirewall"
@@ -115,7 +115,7 @@ export default function Tech() {
                                 onChange={() => setDetectFirewall(!detectFirewall)}
                             />
                             <label htmlFor="detectFirewall">Detect Firewall</label>
-                        </div>
+                        </div> */}
                     </div>
 
                     <button

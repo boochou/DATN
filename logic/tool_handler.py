@@ -106,7 +106,6 @@ class Utilities:
                             "service": service,
                             "version": version if version else ""
                         })
-        print("NMAP RESULT: ", result)
         return result 
     @staticmethod
     def run_binary(binary_name, arguments,domain=None):
@@ -121,7 +120,7 @@ class Utilities:
                     with open(result_file, "r") as file:
                         output = [line.strip() for line in file.readlines() if line.strip()]
                 os.remove(result_file)
-            print(f"{binary_name} found {len(output)} results.", file=sys.stderr)           
+            # print(f"{binary_name} found {len(output)} results.", file=sys.stderr)           
             return binary_name, output
         except subprocess.CalledProcessError as e:
             print(f"Error running {binary_name}: {e.stderr}", file=sys.stderr)
@@ -189,7 +188,6 @@ class Reconn:
             if len(parts) >= 4 and parts[2] in {"address", "IPv6"}:  # Ensure valid lines
                 ip = parts[-1]
                 result.append(ip)
-        print(f"Result in ip_only: {result}" , file=sys.stderr)
         return result
     
     def tech_collect_general(self,input):
