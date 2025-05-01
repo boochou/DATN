@@ -2,9 +2,12 @@ from flask import Flask
 from flask_cors import CORS
 from acktool import *
 from flask import request
+from routes.api_route import api_analysis_bp
+
 app = Flask(__name__)
 CORS(app)  # ← This enables CORS for all routes
 
+app.register_blueprint(api_analysis_bp)
 
 #Member API Route
 @app.route("/members",methods=["GET", "POST"])
