@@ -45,7 +45,7 @@ def handle_recommend_tools():
     time.sleep(0.1)
     r = {"status": 200, "data": "test data kakaka", "error": "there is error with the llm server"}
 
-    # r = llm_recommend_tool(question)
+    r = llm_recommend_tool(question)
     
     return jsonify(r)
 

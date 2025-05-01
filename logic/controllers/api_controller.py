@@ -72,17 +72,17 @@ API 8 and 16. Reason: API 8 has parameter '$[0]' and API 16 has url segment num 
 API 9 and 10. Reason: API 9 has parameter '$loanId' and API 10 has url segment num 3 with the same value 'LOAN12345'
 API 11 and 12. Reason: API 11 has parameter '$accountId' and API 12 has url segment num 2 with the same value 'ACCT12345'
 API 11 and 16. Reason: API 11 has parameter '$accountId' and API 16 has parameter '$accountId' with the same value 'ACCT12345'"""
-    return {"status": 200, "data": result}
-    # response = requests.post(url, json=payload, stream=True)
-    # if response.status_code == 200:
-    #     result = ""
-    #     for line in response.iter_lines(decode_unicode=True):
-    #         if line:
-    #             data = json.loads(line)
-    #             result += data.get("response", "")
-    #     return {"status": 200, "data": result}
+    # return {"status": 200, "data": result}
+    response = requests.post(url, json=payload, stream=True)
+    if response.status_code == 200:
+        result = ""
+        for line in response.iter_lines(decode_unicode=True):
+            if line:
+                data = json.loads(line)
+                result += data.get("response", "")
+        return {"status": 200, "data": result}
     
-    # return {"status": 500, "error": "LLM Server error, please try again"}
+    return {"status": 500, "error": "LLM Server error, please try again"}
 
 def llm_recommend_tool(question):
     alpaca_prompt = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
