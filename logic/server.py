@@ -2,10 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from controller import *
 from flask import request
-<<<<<<< HEAD
-=======
 from routes.api_route import api_analysis_bp
->>>>>>> 451e3afe7bf6edf41cc79f1e69916c343d67612e
 from flask import jsonify
 from collections.abc import Mapping
 
@@ -47,18 +44,10 @@ def scan_tech():
     input_val = request.args.get("input")
     scanOS = request.args.get("scanOS")
     # firewall = request.args.get("firewall")
-<<<<<<< HEAD
-    result = scan_technologies(input_val,scanOS)
-    if isinstance(result, (Mapping, str)):
-        return result
-=======
     result = scan_technologies(input_val)
     if isinstance(result, (Mapping, str)):
-        print("K cần chuyển")
         print(result)
         return result
-    print("chuyển")
->>>>>>> 451e3afe7bf6edf41cc79f1e69916c343d67612e
     return jsonify(result)
 
 if __name__ == "__main__":
