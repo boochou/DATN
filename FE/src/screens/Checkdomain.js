@@ -64,7 +64,7 @@ export default function DomainChecker() {
             <Header />
 
             <div className="relative items-center justify-center min-h-screen text-gray-900 container mx-auto p-24">
-                <h1 className="text-3xl font-bold text-white mb-4">Domain Checker</h1>
+                <h1 className="text-3xl font-bold text-white mb-4">IP/Port Scanner</h1>
 
                 <div className="bg-white p-16 rounded-lg shadow-md">
                     <div className="mb-4">

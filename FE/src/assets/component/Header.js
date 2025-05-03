@@ -22,7 +22,7 @@ import { ChevronDownIcon, PhoneIcon, PlayCircleIcon } from '@heroicons/react/20/
 
 const Recons = [
   { name: 'Subdomain discovery', description: 'Subdomain discovery', href: '/SubdomainScanner', icon: MagnifyingGlassIcon },
-  { name: 'Active domain detection', description: 'Active domain detection', href: '/DomainChecker', icon: WifiIcon },
+  { name: 'IP/Port scanner', description: 'Collect IP/Port and Detect service', href: '/DomainChecker', icon: WifiIcon },
   { name: 'Technology stack detection', description: 'Technology stack detection', href: '/Tech', icon: WrenchScrewdriverIcon },
   { name: 'Resource discovery', description: 'Resource discovery', href: '/ResourceScanner', icon: FolderOpenIcon },
   // { name: 'Automations', description: 'Configuration capabilities', href: 'Config', icon: CodeBracketSquareIcon },
