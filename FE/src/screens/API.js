@@ -4,25 +4,30 @@ import Footer from "../assets/component/Footer";
 import background from "../assets/img/background.jpg";
 
 export default function ApiAnalysis() {
-    const [question, setQuestion] = useState('');
+    const [file, setFile] = useState(null);
     const [answer, setAnswer] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleQuestionChange = (event) => {
-        setQuestion(event.target.value);
+    const handleFileChange = (e) => {
+        setFile(e.target.files[0]);
     };
 
     const handleSubmit = async () => {
+        if (!file) {
+            alert('Please select a file first!');
+            return;
+        }
+
         setLoading(true);
         setAnswer('');
 
+        const formData = new FormData();
+        formData.append('apisFile', file);
+
         try {
-            const response = await fetch('http://localhost:5000/members', {
+            const response = await fetch('http://localhost:5000/api/api-analysis/create-api-relationship', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ question }),
+                body: formData,
             });
 
             if (!response.ok) {
@@ -31,13 +36,29 @@ export default function ApiAnalysis() {
 
             const data = await response.json();
             console.log("API Response:", data);
-            if (typeof data === 'object' && data !== null) {
-                setAnswer(JSON.stringify(data, null, 2));
-            } else if (typeof data === 'string') {
-                setAnswer(data);
-            } else {
-                setAnswer(String(data));
+            if (data.status === 200){
+                if (typeof data.raw_response === 'object' && data.raw_response !== null) {
+                    setAnswer(JSON.stringify(data.raw_response, null, 2));
+                } else if (typeof data.raw_response === 'string') {
+                    setAnswer(data.raw_response);
+                } else {
+                    setAnswer(data.raw_response);
+                }
             }
+            else{
+                setAnswer(data.error);
+            }
+
+            
+            // console.log("API Response:", data);
+            // setAnswer(data.raw_response);
+            // if (typeof data === 'object' && data !== null) {
+            //     setAnswer(JSON.stringify(data, null, 2));
+            // } else if (typeof data === 'string') {
+            //     setAnswer(data);
+            // } else {
+            //     setAnswer(String(data));
+            // }
         } catch (error) {
             console.error('Error fetching data:', error);
             setAnswer(`Error fetching data: ${error.message}`);
@@ -56,23 +77,21 @@ export default function ApiAnalysis() {
                 <div className="bg-white p-16 rounded-lg shadow-md">
                     <div className="mb-4">
                         <label htmlFor="question" className="block text-gray-700 font-semibold mb-2">
-                            Input:
+                            Upload APIs file for analysis:
                         </label>
-                        <textarea
-                            id="question"
+                        <input
+                            id="fileUpload"
+                            type="file"
                             className="border rounded p-2 w-full"
-                            placeholder="Enter your question"
-                            value={question}
-                            onChange={handleQuestionChange}
+                            onChange={handleFileChange}
                         />
                     </div>
-
                     <button
                         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         onClick={handleSubmit}
                         disabled={loading}
                     >
-                        {loading ? 'Analyzing...' : 'Ask'}
+                        {loading ? 'Analyzing...' : 'Analyze'}
                     </button>
 
                     {loading && (
@@ -86,7 +105,7 @@ export default function ApiAnalysis() {
                         <div className="mt-4">
                             <h2 className="text-lg font-semibold mb-2">Answer:</h2>
                             <div className="overflow-auto max-h-60 bg-gray-100 rounded p-4">
-                                <pre className="font-mono text-sm">
+                                <pre className="font-mono text-sm whitespace-pre-wrap break-words">
                                     {answer}
                                 </pre>
                             </div>
