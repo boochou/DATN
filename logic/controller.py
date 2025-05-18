@@ -6,7 +6,8 @@ try:
 except ImportError:
     from tool_handler import *
 import os
-
+RED = "\033[91m"
+RESET = "\033[0m"  # Reset về màu mặc định
 output_dir = "results"
 def collect_subdomains(input_value, mode,w):
     os.makedirs(output_dir, exist_ok=True)
@@ -32,7 +33,7 @@ def collect_subdomains(input_value, mode,w):
         print(f"Passive recon found {len(passive_results)} unique subdomains.\n", file=sys.stderr)       
         print(f"Active recon found {len(active_results)} unique subdomains.\n", file=sys.stderr)       
         results = sorted(set(passive_results).union(active_results))  
-        print(f"Recon found {len(results)} unique subdomains.\n", file=sys.stderr)        
+        print(f"{RED}Recon found {len(results)} unique subdomains{RESET}.\n", file=sys.stderr)        
         Utilities.handle_output(output_dir,"reconn",results,d)
         all_results.extend(results)
     return all_results
@@ -60,7 +61,7 @@ def check_active_domains(input_file=None, ip_only=False,isCommon=True):
             all_results.extend(ips)
             if ips != []:
                 active_domains[d] = ips
-        print(f"Active domain {len(active_domains)}/{len(domains)}",file=sys.stderr)
+        print(f"{RED}Active domain {len(active_domains)}/{len(domains)}{RESET}",file=sys.stderr)
         for domain, ips in active_domains.items():
             ip_str = ", ".join(ips)
             sys.stderr.write(f"\n - {ip_str} - \n ")
@@ -73,7 +74,16 @@ def check_active_domains(input_file=None, ip_only=False,isCommon=True):
         ips = reconn_tool.ip_port_collect(d,isCommon)
         Utilities.write_to_file(ips,output_dir,"check_domain",d,'json')
         all_results[d] = ips[d]
-    return all_results  
+    http_services = {"http", "ssl/https","http-proxy","ssl/https-alt"}
+
+    # Duyệt qua từng domain và kiểm tra dịch vụ
+    print(f"{RED}Domain support http/https:{RESET}",file=sys.stderr)
+    for domain, info in all_results.items():
+        for port in info.get("ports", []):
+            if port["state"] == "open" and port["service"] in http_services:
+                print(f"{domain}")
+                break  # Đã in thì không cần kiểm tra thêm 
+    return all_results            
 
 def scan_technologies(input_file):
     print(f"Collect technology from {input_file}",file=sys.stderr)

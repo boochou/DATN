@@ -140,7 +140,7 @@ class Reconn:
         }
         self.urltools = {
             "paramspider": lambda domain: ["-d", domain],
-            # "katana": lambda domain: ["-u", domain]
+            "katana": lambda domain: ["-u", domain]
         }
         self.techtools = {
             "/usr/bin/httpx": lambda domain: ["-u", domain]
@@ -185,9 +185,7 @@ class Reconn:
             raw = subprocess.run(["nmap", "-p-", input], check=True, text=True, capture_output=True)
         result = raw.stdout.strip()
         res = Utilities.parse_nmap_output(result)
-        print(res)
         if res != {}:
-            print("yeah")
             return res
         return {
             input_raw: {}
