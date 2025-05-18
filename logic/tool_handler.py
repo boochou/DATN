@@ -8,7 +8,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 import socket
 import whois
-
+RED = "\033[91m"
+RESET = "\033[0m"  # Reset về màu mặc định
 class InvalidInputError(Exception):
     """Custom exception for invalid input values."""
     pass
@@ -177,11 +178,18 @@ class Reconn:
         input = input_raw
         if '*' in input_raw:
             input = input.replace('*', 'acktool')
+        try:
+            w = whois.whois(input)
+        except Exception as e:
+            raise ValueError(f"WHOIS lookup failed for {input}: {str(e)}")
+            
+        if not w.domain_name:
+            raise ValueError(f"Invalid domain: {input_raw}")
         if iscommon:
-            print("Scan commond port")
+            print(f"Scan commond port - {input_raw}",file=sys.stderr)
             raw = subprocess.run(["nmap", "-sV", input], check=True, text=True, capture_output=True)
         else:
-            print("Scan all port")
+            print(f"Scan all port - {input_raw}",file=sys.stderr)
             raw = subprocess.run(["nmap", "-p-", input], check=True, text=True, capture_output=True)
         result = raw.stdout.strip()
         res = Utilities.parse_nmap_output(result)
@@ -246,6 +254,12 @@ class Reconn:
             "-rt": "Response time",
             "-websocket": "WebSocket support",
         }
+        try:
+            w = whois.whois(input)
+        except Exception as e:
+            raise ValueError(f"WHOIS lookup failed for {input}: {str(e)}")
+        if not w.domain_name:
+            raise ValueError(f"Invalid domain: {input}")
         result = {}
         for option, meaning in options.items():
             output = subprocess.run(["/usr/bin/httpx",option,"-u", input], check=True, text=True, capture_output=True)
@@ -254,6 +268,12 @@ class Reconn:
         return result
 
     def url_collection(self, input_domain):
+        try:
+            w = whois.whois(input_domain)
+        except Exception as e:
+            raise ValueError(f"WHOIS lookup failed for {input_domain}: {str(e)}")
+        if not w.domain_name:
+            raise ValueError(f"Invalid domain: {input_domain}")
         with ThreadPoolExecutor() as executor:
             futures = []
             for binary_name, arg_func in self.urltools.items():
@@ -264,5 +284,5 @@ class Reconn:
 
         all_url = set(sub for sublist in results.values() for sub in sublist)
         fuzzed_urls = {Utilities.fuzzify_url(url) for url in all_url}
-        print(f"URL collection found {len(fuzzed_urls)} URL.")
+        print(f"{RED}URL collection found {len(fuzzed_urls)} URL.{RESET}",file=sys.stderr)
         return fuzzed_urls
