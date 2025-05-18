@@ -6,6 +6,8 @@ import subprocess
 from knock import KNOCKPY
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+import socket
+import whois
 
 class InvalidInputError(Exception):
     """Custom exception for invalid input values."""
@@ -25,14 +27,16 @@ class Utilities:
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         return ansi_escape.sub('', text)
     @staticmethod
-    def handle_output(output_dir,type,results,d):  
+    def handle_output(output_dir,type,results,d,hidden =False):  
         subfolder_path = os.path.join(output_dir, type)
         os.makedirs(subfolder_path, exist_ok=True)
         output_file = os.path.join(subfolder_path, f"{d}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
         print(f"Writing results for {d} to {output_file}",file=sys.stderr)
         with open(output_file, "w") as file:
             file.write("\n".join(results))
-        print("\n".join(results))
+        if hidden:  
+            print("\n".join(results),file=sys.stderr)
+        else: print("\n".join(results))
     @staticmethod
     def is_valid_domain(domain: str) -> bool:
         pattern = re.compile(r'^(?:[a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,}$')
@@ -155,20 +159,24 @@ class Reconn:
         all_subdomains = set(sub for sublist in results.values() for sub in sublist)
         return all_subdomains
 
-    def active_recon(self, domain,wl="./tmp/dict.txt"): #return an array of subdomain
+    def active_recon(self, domain,wl="./tmp/wordlist.txt"): #return an array of subdomain
         try:
             print(f"Starting active reconnaissance for domain: {domain}", file=sys.stderr)
             global knockpy_output
-            knockpy_output = KNOCKPY(domain, dns=None, useragent=None, timeout=None, threads=None, recon=False, bruteforce=True, wordlist=wl)
+            knockpy_output = KNOCKPY(domain, dns=None, useragent=None, timeout=None, threads=None, recon=False, bruteforce=True, wordlist=None)
             return  [entry["domain"] for entry in knockpy_output]
         except subprocess.CalledProcessError as e:
             print(f"Error during active reconnaissance: {e.stderr}", file=sys.stderr)
             return []
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             print("Error: 'knockpy' tool not found. Ensure it is properly installed and accessible.", file=sys.stderr)
+            print(e, file=sys.stderr)
             return []
-    def ip_port_collect(self, input, iscommon=True):
+    def ip_port_collect(self, input_raw, iscommon=True):
         raw = ''
+        input = input_raw
+        if '*' in input_raw:
+            input = input.replace('*', 'acktool')
         if iscommon:
             print("Scan commond port")
             raw = subprocess.run(["nmap", "-sV", input], check=True, text=True, capture_output=True)
@@ -176,18 +184,50 @@ class Reconn:
             print("Scan all port")
             raw = subprocess.run(["nmap", "-p-", input], check=True, text=True, capture_output=True)
         result = raw.stdout.strip()
-        return Utilities.parse_nmap_output(result)
+        res = Utilities.parse_nmap_output(result)
+        print(res)
+        if res != {}:
+            print("yeah")
+            return res
+        return {
+            input_raw: {}
+        }
         
-
+    def check_domain_status(self,domain):
+        try:
+            if '*' in domain:
+                domain = domain.replace('*', 'acktool')
+            # WHOIS để kiểm tra domain còn tồn tại không
+            w = whois.whois(domain)
+            if not w.domain_name:
+                return {"status": "Not registered", "ip": []}
+            
+            # DNS để lấy IP
+            ip_list = []
+            try:
+                ip_list.append(socket.gethostbyname(domain))
+            except socket.gaierror:
+                pass  # Không có IP
+            
+            return ip_list if ip_list else []
+        except Exception as e:
+            return []
     def ip_only(self, inputs): #return an array of IP
+        if '*' in inputs:
+            return []
         result = []
-        raw = subprocess.run(["host",inputs], check=True, text=True, capture_output=True)
-        tmp = raw.stdout.strip() 
-        for line in tmp.splitlines():
-            parts = line.split()
-            if len(parts) >= 4 and parts[2] in {"address", "IPv6"}:  # Ensure valid lines
-                ip = parts[-1]
-                result.append(ip)
+        try:
+            raw = subprocess.run(["host", inputs], check=True, text=True, capture_output=True)
+            tmp = raw.stdout.strip()
+            for line in tmp.splitlines():
+                parts = line.split()
+                if len(parts) >= 4 and parts[2] in {"address", "IPv6"}:  # Ensure valid lines
+                    ip = parts[-1]
+                    result.append(ip)
+        except subprocess.CalledProcessError:
+            return []
+        except Exception:
+            return []
         return result
     
     def tech_collect_general(self,input):

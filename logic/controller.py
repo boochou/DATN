@@ -39,6 +39,7 @@ def collect_subdomains(input_value, mode,w):
 
 def check_active_domains(input_file=None, ip_only=False,isCommon=True):
     print(f"Checking active domains from {input_file}, with {ip_only}",file=sys.stderr)
+    active_domains={}
     domains = []
     #handle input
     if input_file:
@@ -54,9 +55,17 @@ def check_active_domains(input_file=None, ip_only=False,isCommon=True):
     if ip_only and ip_only !="false":
         all_results = []
         for d in domains:
-            ips = reconn_tool.ip_only(d)
-            Utilities.handle_output(output_dir,"check_domain",ips,d)
+            ips = reconn_tool.check_domain_status(d)
+            Utilities.handle_output(output_dir,"check_domain",ips,d,True)
             all_results.extend(ips)
+            if ips != []:
+                active_domains[d] = ips
+        print(f"Active domain {len(active_domains)}/{len(domains)}",file=sys.stderr)
+        for domain, ips in active_domains.items():
+            ip_str = ", ".join(ips)
+            sys.stderr.write(f"\n - {ip_str} - \n ")
+            sys.stdout.write(f"{domain}\n")
+            
         return all_results
     #ip_port collection
     all_results = {}
@@ -72,12 +81,9 @@ def scan_technologies(input_file):
     #handle input
     if input_file:
         try:
-            print(f"check input",file=sys.stderr)
             with open(input_file, "r") as f:
-                print(f"IS A FILE",file=sys.stderr)
                 domains = f.read().splitlines()
         except:
-            print(f"NOT A FILE",file=sys.stderr)
             domains = [input_file] if Utilities.is_valid_domain(input_file) else []
     elif not sys.stdin.isatty():  # If input is piped
         domains = sys.stdin.read().splitlines()
