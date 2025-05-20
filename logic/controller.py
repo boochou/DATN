@@ -30,6 +30,7 @@ def collect_subdomains(input_value, mode,w):
                     active_future = executor.submit(reconn_tool.active_recon, *args)
                 passive_results = passive_future.result()
                 active_results = active_future.result() if active_future else []
+
         print(f"Passive recon found {len(passive_results)} unique subdomains.\n", file=sys.stderr)       
         print(f"Active recon found {len(active_results)} unique subdomains.\n", file=sys.stderr)       
         results = sorted(set(passive_results).union(active_results))  
